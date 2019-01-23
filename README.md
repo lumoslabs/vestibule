@@ -1,6 +1,6 @@
 # vestibule
 
-A [gosu](/tianon/gosu) port which will load secrets from [Vault](vaultproject.io) and / or [Sops](/mozilla/sops) before exec'ing your baby.
+A [gosu](github.com/tianon/gosu) port which will load secrets from [Vault](vaultproject.io) and / or [Sops](github.com/mozilla/sops) before exec'ing your baby.
 
 ## Usage
 
