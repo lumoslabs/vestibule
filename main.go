@@ -13,8 +13,6 @@ import (
 	"text/template"
 )
 
-const version = "0.0.1"
-
 func init() {
 	runtime.GOMAXPROCS(1)
 	runtime.LockOSThread()
