@@ -3,20 +3,14 @@ package main
 import (
 	"bytes"
 	"fmt"
-	"log"
 	"os"
-	"os/exec"
 	"path/filepath"
 	"runtime"
 	"strings"
-	"syscall"
 	"text/template"
 )
 
-func init() {
-	runtime.GOMAXPROCS(1)
-	runtime.LockOSThread()
-}
+const version = "0.0.1"
 
 func getVersion() string {
 	return fmt.Sprintf(`%s (%s on %s/%s; %s)`, version, runtime.Version(), runtime.GOOS, runtime.GOARCH, runtime.Compiler)
@@ -44,6 +38,11 @@ Usage: {{ .Self }} user-spec command [args]
     VAULT_*
       All vault client configuration environment variables are respected.
       More information at https://www.vaultproject.io/docs/commands/#environment-variables
+    
+    EJSON_FILES=/path/to/file1:...
+    EJSON_KEYS=pubkey;privkey:...
+      If EJSON_FILES is set, will iterate over each file (colon separated), attempting to decrypt using keys
+      from EJSON_KEYS. Cleartext decrypted json will be parsed into a map[string]string and injected into Environ.
 
 {{ .Self }} version: {{ .Version }}
 {{ .Self }} license: GPL-3 (full text at https://github.com/lumoslabs/vestibule)
@@ -57,46 +56,4 @@ Usage: {{ .Self }} user-spec command [args]
 		Version: getVersion(),
 	}))
 	return strings.TrimSpace(b.String()) + "\n"
-}
-
-func main() {
-	log.SetFlags(0) // no timestamps on our logs
-
-	if len(os.Args) >= 2 {
-		switch os.Args[1] {
-		case "--help", "-h", "-?":
-			fmt.Println(usage())
-			os.Exit(0)
-		case "--version", "-v":
-			fmt.Println(getVersion())
-			os.Exit(0)
-		}
-	}
-	if len(os.Args) <= 2 {
-		log.Println(usage())
-		os.Exit(1)
-	}
-
-	e := envv(os.Environ())
-	c, _ := newConfig()
-	sopsDecrypt(c.sopsConfig, &e)
-	if v, er := newVaultClient(); er == nil {
-		v.getKeys(c.vaultConfig, &e)
-	}
-
-	// clear HOME so that SetupUser will set it
-	os.Unsetenv("HOME")
-
-	if err := SetupUser(os.Args[1]); err != nil {
-		log.Fatalf("error: failed switching to %q: %v", os.Args[1], err)
-	}
-
-	name, err := exec.LookPath(os.Args[2])
-	if err != nil {
-		log.Fatalf("error: %v", err)
-	}
-
-	if err = syscall.Exec(name, os.Args[2:], e); err != nil {
-		log.Fatalf("error: exec failed: %v", err)
-	}
 }

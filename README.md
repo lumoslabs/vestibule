@@ -26,6 +26,11 @@ Usage: vest user-spec command [args]
       All vault client configuration environment variables are respected.
       More information at https://www.vaultproject.io/docs/commands/#environment-variables
 
+    EJSON_FILES=/path/to/file1:...
+    EJSON_KEYS=pubkey;privkey:...
+      If EJSON_FILES is set, will iterate over each file (colon separated), attempting to decrypt using keys
+      from EJSON_KEYS. Cleartext decrypted json will be parsed into a map[string]string and injected into Environ.
+
 vest version: 0.0.1 (go1.11.4 on linux/amd64; gc)
 vest license: GPL-3 (full text at https://github.com/lumoslabs/vestibule)
 ```
