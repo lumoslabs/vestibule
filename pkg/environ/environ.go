@@ -3,6 +3,7 @@ package environ
 import (
 	"fmt"
 	"os"
+	"sort"
 	"strings"
 )
 
@@ -42,6 +43,7 @@ func (e *Environ) Slice() []string {
 		s = append(s, k+"="+v)
 	}
 	e.RUnlock()
+	sort.Strings(s)
 	return s
 }
 
