@@ -67,8 +67,8 @@ func TestAddToEnviron(t *testing.T) {
 			f.Close()
 		}
 
-		os.Setenv("EJSON_KEYS", strings.Join(keys, KeyPairEnvSeparator))
-		os.Setenv("EJSON_FILES", strings.Join(files, ":"))
+		os.Setenv(KeysEnvVar, strings.Join(keys, KeyPairEnvSeparator))
+		os.Setenv(FilesEnvVar, strings.Join(files, ":"))
 
 		ej, er := NewEjsonProvider()
 		assert.NoErrorf(t, er, tt.name)

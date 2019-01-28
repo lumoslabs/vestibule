@@ -1,6 +1,7 @@
 package vault
 
 import (
+	"os"
 	"reflect"
 	"strconv"
 	"strings"
@@ -14,6 +15,7 @@ import (
 const (
 	VaultProviderName = "vault"
 	VaultKeySeparator = "@"
+	KeysEnvVar        = "VAULT_KEYS"
 )
 
 func NewVaultProvider() (environ.Provider, error) {
@@ -31,10 +33,12 @@ func NewVaultProvider() (environ.Provider, error) {
 	if er := env.ParseWithFuncs(v, p); er != nil {
 		return nil, er
 	}
+	os.Unsetenv(KeysEnvVar)
 	return v, nil
 }
 
 func (v *VaultProvider) AddToEnviron(e *environ.Environ) error {
+	e.Delete(KeysEnvVar)
 	for _, key := range v.Keys {
 		data := make(map[string][]string)
 		data["version"] = []string{"0"}

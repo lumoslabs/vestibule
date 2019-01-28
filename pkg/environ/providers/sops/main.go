@@ -10,6 +10,8 @@ import (
 	"strconv"
 	"strings"
 
+	"go.mozilla.org/sops"
+
 	"github.com/caarlos0/env"
 	"github.com/joho/godotenv"
 	"go.mozilla.org/sops/decrypt"
@@ -22,6 +24,7 @@ const (
 	SopsProviderName       = "sops"
 	EncryptedFileSeparator = ";"
 	DefaultOutputMode      = os.FileMode(0700)
+	FilesEnvVar            = "SOPS_FILES"
 )
 
 func NewSopsProvider() (environ.Provider, error) {
@@ -33,6 +36,8 @@ func NewSopsProvider() (environ.Provider, error) {
 }
 
 func (sp *SopsProvider) AddToEnviron(e *environ.Environ) error {
+	os.Unsetenv(FilesEnvVar)
+	e.Delete(FilesEnvVar)
 	for _, f := range sp.Files {
 		data, er := f.Decrypt()
 		if er != nil {
@@ -45,7 +50,11 @@ func (sp *SopsProvider) AddToEnviron(e *environ.Environ) error {
 			}
 		} else {
 			if env, er := f.Decode(data); er == nil {
-				e.Append(env)
+				envv := make(map[string]string, len(env))
+				for k, v := range env {
+					envv[strings.TrimRight(k, sops.DefaultUnencryptedSuffix)] = v
+				}
+				e.Append(envv)
 			}
 		}
 	}

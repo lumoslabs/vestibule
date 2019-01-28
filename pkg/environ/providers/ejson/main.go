@@ -18,6 +18,8 @@ const (
 	EjsonProviderName   = "ejson"
 	KeyPairEnvSeparator = ":"
 	KeyPairSeparator    = ";"
+	FilesEnvVar         = "EJSON_FILES"
+	KeysEnvVar          = "EJSON_KEYS"
 )
 
 func NewEjsonProvider() (environ.Provider, error) {
@@ -26,7 +28,8 @@ func NewEjsonProvider() (environ.Provider, error) {
 	if er := env.ParseWithFuncs(ep, p); er != nil {
 		return nil, er
 	}
-	os.Unsetenv("EJSON_KEYS")
+	os.Unsetenv(FilesEnvVar)
+	os.Unsetenv(KeysEnvVar)
 	return ep, nil
 }
 
@@ -46,8 +49,8 @@ func keyPairMapParser(s string) (interface{}, error) {
 }
 
 func (ep *EjsonProvider) AddToEnviron(e *environ.Environ) error {
-	e.Delete("EJSON_FILES")
-	e.Delete("EJSON_KEYS")
+	e.Delete(FilesEnvVar)
+	e.Delete(KeysEnvVar)
 	for _, f := range ep.Files {
 		privkey, er := matchPrivateKey(f, ep.KeyPairs)
 		if er != nil {
