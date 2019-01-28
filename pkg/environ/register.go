@@ -1,10 +1,17 @@
 package environ
 
-import "fmt"
+import (
+	"fmt"
+	"log"
+)
 
-var providers = make(map[string]ProviderFactory)
+var providers map[string]ProviderFactory
 
 func RegisterProvider(name string, fn ProviderFactory) {
+	log.Printf("Registering provider %s", name)
+	if providers == nil {
+		providers = make(map[string]ProviderFactory)
+	}
 	providers[name] = fn
 }
 

@@ -7,7 +7,7 @@ ENV CGO_ENABLED=0 \
   GO111MODULE=on
 WORKDIR /build
 COPY go.mod ./
-RUN go get -v
+RUN go mod download
 COPY . ./
 
 

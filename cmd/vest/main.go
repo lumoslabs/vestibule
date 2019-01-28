@@ -9,6 +9,10 @@ import (
 	"sync"
 	"syscall"
 
+	"github.com/lumoslabs/vestibule/pkg/environ/providers/ejson"
+	"github.com/lumoslabs/vestibule/pkg/environ/providers/sops"
+	"github.com/lumoslabs/vestibule/pkg/environ/providers/vault"
+
 	"github.com/caarlos0/env"
 
 	"github.com/lumoslabs/vestibule/pkg/environ"
@@ -40,6 +44,10 @@ func main() {
 		os.Exit(1)
 	}
 
+	environ.RegisterProvider(ejson.EjsonProviderName, ejson.NewEjsonProvider)
+	environ.RegisterProvider(vault.VaultProviderName, vault.NewVaultProvider)
+	environ.RegisterProvider(sops.SopsProviderName, sops.NewSopsProvider)
+
 	var (
 		e  = environ.NewEnvironFromEnv()
 		c  = new(Config)
@@ -51,10 +59,12 @@ func main() {
 		p, er := environ.GetProvider(name)
 		if er != nil {
 			log.Println(er)
+			continue
 		}
 
 		wg.Add(1)
 		go func() {
+			defer wg.Done()
 			if er := p.AddToEnviron(e); er != nil {
 				log.Println(er)
 			}

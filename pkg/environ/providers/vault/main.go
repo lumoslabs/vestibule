@@ -16,10 +16,6 @@ const (
 	VaultKeySeparator = "@"
 )
 
-func init() {
-	environ.RegisterProvider(VaultProviderName, NewVaultProvider)
-}
-
 func NewVaultProvider() (environ.Provider, error) {
 	vc, er := api.NewClient(api.DefaultConfig())
 	if er != nil {

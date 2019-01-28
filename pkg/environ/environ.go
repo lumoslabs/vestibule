@@ -29,6 +29,12 @@ func (e *Environ) Append(m map[string]string) {
 	e.Unlock()
 }
 
+func (e *Environ) Delete(key string) {
+	e.Lock()
+	delete(e.m, key)
+	e.Unlock()
+}
+
 func (e *Environ) Slice() []string {
 	var s = make([]string, 0)
 	e.RLock()

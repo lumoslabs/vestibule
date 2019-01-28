@@ -24,10 +24,6 @@ const (
 	DefaultOutputMode      = os.FileMode(0700)
 )
 
-func init() {
-	environ.RegisterProvider(SopsProviderName, NewSopsProvider)
-}
-
 func NewSopsProvider() (environ.Provider, error) {
 	var (
 		sp = &SopsProvider{}
@@ -62,7 +58,7 @@ func (ef *EncryptedFile) Decrypt() ([]byte, error) {
 
 func (ef *EncryptedFile) Decode(data []byte) (map[string]string, error) {
 	env := make(map[string]string)
-	if er := ef.UnmarshalFunc(data, env); er != nil {
+	if er := ef.UnmarshalFunc(data, &env); er != nil {
 		return nil, er
 	}
 	return env, nil

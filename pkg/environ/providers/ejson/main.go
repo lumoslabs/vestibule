@@ -20,16 +20,13 @@ const (
 	KeyPairSeparator    = ";"
 )
 
-func init() {
-	environ.RegisterProvider(EjsonProviderName, NewEjsonProvider)
-}
-
 func NewEjsonProvider() (environ.Provider, error) {
 	var ep = new(EjsonProvider)
 	p := env.CustomParsers{reflect.TypeOf(KeyPairMap{}): keyPairMapParser}
 	if er := env.ParseWithFuncs(ep, p); er != nil {
 		return nil, er
 	}
+	os.Unsetenv("EJSON_KEYS")
 	return ep, nil
 }
 
@@ -49,21 +46,12 @@ func keyPairMapParser(s string) (interface{}, error) {
 }
 
 func (ep *EjsonProvider) AddToEnviron(e *environ.Environ) error {
-	os.Unsetenv("EJSON_KEYS")
+	e.Delete("EJSON_FILES")
+	e.Delete("EJSON_KEYS")
 	for _, f := range ep.Files {
-		data, er := ioutil.ReadFile(f)
+		privkey, er := matchPrivateKey(f, ep.KeyPairs)
 		if er != nil {
 			return er
-		}
-
-		pubkey, er := ejJson.ExtractPublicKey(data)
-		if er != nil {
-			return er
-		}
-
-		privkey, ok := ep.KeyPairs[string(pubkey[:])]
-		if !ok {
-			return fmt.Errorf("Unknown public key %v", string(pubkey[:]))
 		}
 
 		clear, er := ejson.DecryptFile(f, os.TempDir(), privkey)
@@ -72,10 +60,34 @@ func (ep *EjsonProvider) AddToEnviron(e *environ.Environ) error {
 		}
 
 		env := make(map[string]string)
-		if er := json.Unmarshal(clear, env); er != nil {
+		if er := json.Unmarshal(clear, &env); er != nil {
 			return er
 		}
-		e.Append(env)
+		delete(env, ejJson.PublicKeyField)
+		envv := make(map[string]string, len(env))
+		for k, v := range env {
+			envv[strings.TrimLeft(k, "_")] = v
+		}
+		e.Append(envv)
 	}
 	return nil
+}
+
+func matchPrivateKey(path string, kpm KeyPairMap) (string, error) {
+	data, er := ioutil.ReadFile(path)
+	if er != nil {
+		return "", er
+	}
+
+	doc := make(map[string]string)
+	if er := json.Unmarshal(data, &doc); er != nil {
+		return "", er
+	}
+
+	pubkey := doc[ejJson.PublicKeyField]
+	privkey, ok := kpm[pubkey]
+	if !ok {
+		return "", fmt.Errorf("Unknown public key %s", pubkey)
+	}
+	return privkey, nil
 }
