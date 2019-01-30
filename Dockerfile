@@ -12,7 +12,7 @@ COPY . ./
 RUN eval "GOARCH=amd64 go build $BUILD_FLAGS -o /go/bin/vest ./cmd/vest"
 
 FROM alpine:3.8
-COPY --from=build /go/bin/vest /usr/local/bin/vest
+COPY --from=build /go/bin/vest /bin/vest
 ENV USER=root
 RUN { \
   echo '#!/usr/bin/dumb-init /bin/sh'; \
