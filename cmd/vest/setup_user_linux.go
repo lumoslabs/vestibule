@@ -4,6 +4,7 @@ import (
 	"os"
 	"syscall"
 
+	"github.com/lumoslabs/vestibule/pkg/environ"
 	"github.com/opencontainers/runc/libcontainer/system"
 	"github.com/opencontainers/runc/libcontainer/user"
 )
@@ -13,7 +14,7 @@ import (
 // (also, because we need minor modifications and it's not even exported)
 
 // SetupUser changes the groups, gid, and uid for the user inside the container
-func SetupUser(u string) error {
+func SetupUser(u string, e *environ.Environ) error {
 	// Set up defaults.
 	defaultExecUser := user.ExecUser{
 		Uid:  syscall.Getuid(),
@@ -42,7 +43,10 @@ func SetupUser(u string) error {
 		return err
 	}
 	// if we didn't get HOME already, set it based on the user's HOME
-	if envHome := os.Getenv("HOME"); envHome == "" {
+	if _, ok := e.Load("HOME"); !ok {
+		e.Set("HOME", execUser.Home)
+	}
+	if home := os.Getenv("HOME"); home == "" {
 		if err := os.Setenv("HOME", execUser.Home); err != nil {
 			return err
 		}

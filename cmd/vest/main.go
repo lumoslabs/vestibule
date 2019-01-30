@@ -75,8 +75,9 @@ func main() {
 	wg.Wait()
 
 	os.Unsetenv("HOME")
+	e.Delete("HOME")
 
-	if err := SetupUser(os.Args[1]); err != nil {
+	if err := SetupUser(os.Args[1], e); err != nil {
 		log.Fatalf("error: failed switching to %q: %v", os.Args[1], err)
 	}
 

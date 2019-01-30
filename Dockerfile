@@ -1,4 +1,4 @@
-FROM golang:1.11-alpine3.8
+FROM golang:1.11-alpine3.8 AS build
 
 RUN apk add --no-cache file git
 
@@ -9,12 +9,15 @@ WORKDIR /build
 COPY go.mod ./
 RUN go mod download
 COPY . ./
+RUN eval "GOARCH=amd64 go build $BUILD_FLAGS -o /go/bin/vest ./cmd/vest"
 
-
-RUN set -eux; \
-  eval "GOARCH=amd64 go build $BUILD_FLAGS -o /go/bin/vest ./cmd/vest"; \
-  file /go/bin/vest; \
-  /go/bin/vest --version; \
-  /go/bin/vest nobody id; \
-  /go/bin/vest nobody ls -l /proc/self/fd/1; \
-  /go/bin/vest --help
+FROM alpine:3.8
+COPY --from=build /go/bin/vest /usr/local/bin/vest
+ENV USER=root
+RUN { \
+  echo '#!/usr/bin/dumb-init /bin/sh'; \
+  echo 'exec vest $USER $@'; \
+  } >/entrypoint.sh \
+  && chmod 755 /entrypoint.sh \ 
+  && apk add --update dumb-init
+ENTRYPOINT [ "/entrypoint.sh" ]

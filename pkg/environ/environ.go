@@ -30,6 +30,19 @@ func (e *Environ) Append(m map[string]string) {
 	e.Unlock()
 }
 
+func (e *Environ) Set(k, v string) {
+	e.Lock()
+	defer e.Unlock()
+	e.m[k] = v
+}
+
+func (e *Environ) Load(k string) (v string, ok bool) {
+	e.RLock()
+	defer e.RUnlock()
+	v, ok = e.m[k]
+	return
+}
+
 func (e *Environ) Delete(key string) {
 	e.Lock()
 	delete(e.m, key)
