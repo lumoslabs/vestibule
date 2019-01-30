@@ -14,7 +14,7 @@ func NewEnviron() *Environ {
 func NewEnvironFromEnv() *Environ {
 	e := make(map[string]string)
 	for _, item := range os.Environ() {
-		bits := strings.Split(item, "=")
+		bits := strings.SplitN(item, "=", 2)
 		if len(bits) == 2 {
 			e[bits[0]] = bits[1]
 		}
