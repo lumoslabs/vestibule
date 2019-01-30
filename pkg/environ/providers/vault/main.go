@@ -13,7 +13,7 @@ import (
 )
 
 const (
-	VaultProviderName = "vault"
+	Name              = "vault"
 	VaultKeySeparator = "@"
 	KeysEnvVar        = "VAULT_KEYS"
 )

@@ -1,6 +1,17 @@
 # vestibule
 
-A [gosu](https://github.com/tianon/gosu) port which will load secrets from [Vault](https://www.vaultproject.io) and / or [Sops](https://github.com/mozilla/sops) before exec'ing your baby.
+A [gosu](https://github.com/tianon/gosu) port which will load secrets from various secrets backends into the environment before exec'ing your baby. [Vault](https://www.vaultproject.io) and / or [Sops](https://github.com/mozilla/sops)
+
+## Providers
+
+Enable providers by setting `VEST_PROVIDERS` in the environment before running `vest`
+
+Available providers:
+
+  * [`vault`](https://www.vaultproject.io)
+  * [`sops`](https://github.com/mozilla/sops)
+  * [`ejson`](https://github.com/Shopify/ejson)
+  * plain old `.env` files
 
 ## Usage
 
@@ -11,6 +22,9 @@ Usage: vest user-spec command [args]
        vest 1000:1 id
 
   Environment Variables:
+
+    VAULT_PROVIDERS=provider1,...
+      Comma separated list of enabled providers. By default only vault is enabled.
 
     SOPS_FILES=/path/to/file[;/path/to/output[;mode]]:...
       If SOPS_FILES is set, will iterate over each file (colon separated), attempting to decrypt with Sops.
@@ -29,7 +43,12 @@ Usage: vest user-spec command [args]
     EJSON_FILES=/path/to/file1:...
     EJSON_KEYS=pubkey;privkey:...
       If EJSON_FILES is set, will iterate over each file (colon separated), attempting to decrypt using keys
-      from EJSON_KEYS. Cleartext decrypted json will be parsed into a map[string]string and injected into Environ.
+      from EJSON_KEYS. If EJSON_FILES is not set, will look for any .ejson files in CWD. Cleartext decrypted
+      json will be parsed into a map[string]string and injected into Environ.
+
+    DOTENV_FILES=/path/to/file1:...
+      if DOTENV_FILES is set, will iterate over each file, parse and inject into Environ. If DOTENV_FILES is
+      not set, will look for any .env files in CWD.
 
 vest version: 0.0.1 (go1.11.4 on linux/amd64; gc)
 vest license: GPL-3 (full text at https://github.com/lumoslabs/vestibule)

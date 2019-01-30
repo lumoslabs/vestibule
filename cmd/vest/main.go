@@ -9,6 +9,7 @@ import (
 	"sync"
 	"syscall"
 
+	"github.com/lumoslabs/vestibule/pkg/environ/providers/dotenv"
 	"github.com/lumoslabs/vestibule/pkg/environ/providers/ejson"
 	"github.com/lumoslabs/vestibule/pkg/environ/providers/sops"
 	"github.com/lumoslabs/vestibule/pkg/environ/providers/vault"
@@ -19,7 +20,7 @@ import (
 )
 
 type Config struct {
-	Providers []string `env:"VEST_PROVIDERS" envSeparator:","`
+	Providers []string `env:"VEST_PROVIDERS" envSeparator:"," envDefault:"vault"`
 }
 
 func init() {
@@ -44,9 +45,10 @@ func main() {
 		os.Exit(1)
 	}
 
-	environ.RegisterProvider(ejson.EjsonProviderName, ejson.NewEjsonProvider)
-	environ.RegisterProvider(vault.VaultProviderName, vault.NewVaultProvider)
-	environ.RegisterProvider(sops.SopsProviderName, sops.NewSopsProvider)
+	environ.RegisterProvider(dotenv.Name, dotenv.NewDotenvProvider)
+	environ.RegisterProvider(ejson.Name, ejson.NewEjsonProvider)
+	environ.RegisterProvider(vault.Name, vault.NewVaultProvider)
+	environ.RegisterProvider(sops.Name, sops.NewSopsProvider)
 
 	var (
 		e  = environ.NewEnvironFromEnv()
@@ -72,7 +74,6 @@ func main() {
 	}
 	wg.Wait()
 
-	// clear HOME so that SetupUser will set it
 	os.Unsetenv("HOME")
 
 	if err := SetupUser(os.Args[1]); err != nil {

@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"os"
+	"path/filepath"
 	"reflect"
 	"strings"
 
@@ -15,7 +16,7 @@ import (
 )
 
 const (
-	EjsonProviderName   = "ejson"
+	Name                = "ejson"
 	KeyPairEnvSeparator = ":"
 	KeyPairSeparator    = ";"
 	FilesEnvVar         = "EJSON_FILES"
@@ -23,13 +24,19 @@ const (
 )
 
 func NewEjsonProvider() (environ.Provider, error) {
+	defer func() {
+		os.Unsetenv(FilesEnvVar)
+		os.Unsetenv(KeysEnvVar)
+	}()
+
 	var ep = new(EjsonProvider)
 	p := env.CustomParsers{reflect.TypeOf(KeyPairMap{}): keyPairMapParser}
 	if er := env.ParseWithFuncs(ep, p); er != nil {
 		return nil, er
 	}
-	os.Unsetenv(FilesEnvVar)
-	os.Unsetenv(KeysEnvVar)
+	if ep.Files == nil || len(ep.Files) == 0 {
+		ep.Files = findEjsonFiles()
+	}
 	return ep, nil
 }
 
@@ -93,4 +100,26 @@ func matchPrivateKey(path string, kpm KeyPairMap) (string, error) {
 		return "", fmt.Errorf("Unknown public key %s", pubkey)
 	}
 	return privkey, nil
+}
+
+func findEjsonFiles() []string {
+	files := make([]string, 0)
+
+	cwd, er := os.Getwd()
+	if er != nil {
+		return files
+	}
+
+	filepath.Walk(cwd, func(path string, info os.FileInfo, er error) error {
+		switch {
+		case er != nil:
+			return er
+		case path != cwd && info.IsDir():
+			return filepath.SkipDir
+		case filepath.Ext(path) == ".ejson":
+			files = append(files, filepath.Join(cwd, path))
+		}
+		return nil
+	})
+	return files
 }

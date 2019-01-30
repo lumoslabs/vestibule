@@ -25,6 +25,9 @@ Usage: {{ .Self }} user-spec command [args]
 
   Environment Variables:
 
+    VAULT_PROVIDERS=provider1,...
+      Comma separated list of enabled providers. By default only vault is enabled.
+
     SOPS_FILES=/path/to/file[;/path/to/output[;mode]]:...
       If SOPS_FILES is set, will iterate over each file (colon separated), attempting to decrypt with Sops.
       The decrypted cleartext file can be optionally written out to a separate location (with optional filemode)
@@ -42,7 +45,12 @@ Usage: {{ .Self }} user-spec command [args]
     EJSON_FILES=/path/to/file1:...
     EJSON_KEYS=pubkey;privkey:...
       If EJSON_FILES is set, will iterate over each file (colon separated), attempting to decrypt using keys
-      from EJSON_KEYS. Cleartext decrypted json will be parsed into a map[string]string and injected into Environ.
+      from EJSON_KEYS. If EJSON_FILES is not set, will look for any .ejson files in CWD. Cleartext decrypted
+      json will be parsed into a map[string]string and injected into Environ.
+    
+    DOTENV_FILES=/path/to/file1:...
+      if DOTENV_FILES is set, will iterate over each file, parse and inject into Environ. If DOTENV_FILES is
+      not set, will look for any .env files in CWD.
 
 {{ .Self }} version: {{ .Version }}
 {{ .Self }} license: GPL-3 (full text at https://github.com/lumoslabs/vestibule)

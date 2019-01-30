@@ -21,7 +21,7 @@ import (
 )
 
 const (
-	SopsProviderName       = "sops"
+	Name                   = "sops"
 	EncryptedFileSeparator = ";"
 	DefaultOutputMode      = os.FileMode(0700)
 	FilesEnvVar            = "SOPS_FILES"
