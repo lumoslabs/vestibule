@@ -58,7 +58,7 @@ func keyPairMapParser(s string) (interface{}, error) {
 	)
 
 	for _, item := range items {
-		bits := strings.Split(item, KeyPairSeparator)
+		bits := strings.SplitN(item, KeyPairSeparator, 2)
 		if len(bits) == 2 {
 			kpm[bits[0]] = bits[1]
 		}
