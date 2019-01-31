@@ -4,22 +4,20 @@ stages:
 
 image: registry.gitlab.com/lumoslabs/docker-library/golang:1.11-ci
 
-cache:
-  key: ${CI_COMMIT_REF_SLUG}
-  paths:
-    - vendor
+variables: &global_variables
+  GOFLAGS: -mod=vendor
 
-before_script:
-  - |
-    if test -d vendor ; then
-      mkdir -vp $GOPATH/pkg/mod
-      cp -r vendor/* $GOPATH/pkg/mod/
-    else
-      go mod download
-    fi
+# before_script:
+#   - |
+#     if test -d vendor ; then
+#       mkdir -vp $GOPATH/pkg/mod
+#       cp -r vendor/* $GOPATH/pkg/mod/
+#     else
+#       go mod download
+#     fi
 
-after_script: 
-  - go mod vendor
+# after_script: 
+#   - go mod vendor
 
 test:
   stage: test
@@ -42,6 +40,7 @@ release:test:
   services:
     - docker:dind
   variables:
+    <<: *global_variables
     DOCKER_HOST: tcp://127.0.0.1:2375/
     DOCKER_DRIVER: overlay2
   script:
