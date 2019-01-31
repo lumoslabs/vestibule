@@ -1,13 +1,18 @@
+stages:
+  - test
+  - release
+
 image: registry.gitlab.com/lumoslabs/docker-library/golang:1.11-ci
 
 cache:
   key: ${CI_COMMIT_REF_SLUG}
   paths:
-    - /go/pkg/mod
+    - vendor
 
-stages:
-  - test
-  - release
+before_script:
+  - if test -d vendor ; then mkdir -p $GOPATH/pkg/mod && cp -r vendor/* $GOPATH/pkg/mod/ ; fi
+  - go mod download
+  - go mod vendor
 
 test:
   stage: test
