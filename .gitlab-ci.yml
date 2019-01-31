@@ -29,6 +29,19 @@ test:memory:
   tags: [k8s]
   script: make test-memory
 
+release:test:
+  stage: release
+  tags: [k8s]
+  services:
+    - docker:dind
+  variables:
+    DOCKER_HOST: tcp://127.0.0.1:2375/
+    DOCKER_DRIVER: overlay2
+  script:
+    - echo "$QUAY_PASSWORD" | docker login --username="$QUAY_USERNAME" --password-stdin quay.io
+    - echo "$CI_JOB_TOKEN" | docker login --username=gitlab-ci-token --password-stdin $CI_REGISTRY
+    - goreleaser release --rm-dist --snapshot
+
 release:
   stage: release
   tags: [k8s]
