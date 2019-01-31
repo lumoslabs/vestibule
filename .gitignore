@@ -1,5 +1,7 @@
 .vscode
-vendor
-bin
 *.ejson
 .env*
+
+vendor
+bin
+dist

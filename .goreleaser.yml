@@ -3,8 +3,8 @@ before:
     - go mod download
 builds:
 - env: ["CGO_ENABLED=0"]
-  main: ./cmd/vest/main.go
-  binary: vest-{{.Os}}-{{.Arch}}
+  main: ./cmd/vest
+  binary: vest
 archive:
   files: ["none*"]
   replacements:
@@ -13,8 +13,8 @@ archive:
     windows: Windows
     386: i386
     amd64: x86_64
-# checksum:
-#   name_template: 'checksums.txt'
+checksum:
+  name_template: "{{ .ProjectName }}_checksums.txt"
 snapshot:
   name_template: "{{ .Tag }}-next"
 changelog:
@@ -23,3 +23,13 @@ changelog:
     exclude:
     - '^docs:'
     - '^test:'
+dockers:
+  - image_templates:
+      - "quay.io/lumoslabs/vestibule:{{ .Tag }}"
+      - "quay.io/lumoslabs/vestibule:{{ .Major }}"
+      - "quay.io/lumoslabs/vestibule:{{ .Major }}.{{ .Minor }}"
+      - "quay.io/lumoslabs/vestibule:latest"
+      - "registry.gitlab.com/lumoslabs/vestibule:{{ .Tag }}"
+      - "registry.gitlab.com/lumoslabs/vestibule:{{ .Major }}"
+      - "registry.gitlab.com/lumoslabs/vestibule:{{ .Major }}.{{ .Minor }}"
+      - "registry.gitlab.com/lumoslabs/vestibule:latest"

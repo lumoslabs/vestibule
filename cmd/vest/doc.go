@@ -10,17 +10,13 @@ import (
 	"text/template"
 )
 
-const version = "0.0.2"
-
 var (
-	// Ref is the buildtime code ref
-	Ref string
-	// Sha is the buildtime code sha
-	Sha string
+	version      = "dev"
+	commit, date string
 )
 
 func appVersion() string {
-	ver := []string{version, Ref, Sha}
+	ver := []string{version, commit, date}
 	return fmt.Sprintf(`%s (%s on %s/%s; %s)`, strings.Join(ver, "/"), runtime.Version(), runtime.GOOS, runtime.GOARCH, runtime.Compiler)
 }
 

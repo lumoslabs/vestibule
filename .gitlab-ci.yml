@@ -1,4 +1,4 @@
-image: golang:1.11
+image: registry.gitlab.com/lumoslabs/docker-library/golang:1.11-ci
 
 cache:
   key: ${CI_COMMIT_REF_SLUG}
@@ -7,6 +7,7 @@ cache:
 
 stages:
   - test
+  - release
 
 test:
   stage: test
@@ -22,3 +23,18 @@ test:memory:
   stage: test
   tags: [k8s]
   script: make test-memory
+
+release:
+  stage: release
+  tags: [k8s]
+  only:
+    - tags
+  services:
+    - docker:dind
+  variables:
+    DOCKER_HOST: tcp://127.0.0.1:2375/
+    DOCKER_DRIVER: overlay2
+  script:
+    - echo "$QUAY_PASSWORD" | docker login --username="$QUAY_USERNAME" --password-stdin quay.io
+    - echo "$CI_JOB_TOKEN" | docker login --username=gitlab-ci-token --password-stdin $CI_REGISTRY
+    - goreleaser release --rm-dist
