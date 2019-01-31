@@ -23,10 +23,13 @@ import (
 const (
 	// Name is the environ.Provider name
 	Name = "sops"
+
 	// EncryptedFileSeparator is the separator between attributes of the encrypted files in FilesEnvVar
 	EncryptedFileSeparator = ";"
+
 	// DefaultOutputMode is the default FileMode of generated files
 	DefaultOutputMode = os.FileMode(0700)
+
 	//FilesEnvVar is the environment variable holding the list of encrypted files
 	FilesEnvVar = "SOPS_FILES"
 )

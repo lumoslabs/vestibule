@@ -15,8 +15,10 @@ import (
 const (
 	// Name is the Provider name
 	Name = "vault"
+
 	// VaultKeySeparator is the separator between key and version in KeysEnvVar
 	VaultKeySeparator = "@"
+
 	// KeysEnvVar is the environment variable holding the keys to lookup
 	KeysEnvVar = "VAULT_KEYS"
 )
