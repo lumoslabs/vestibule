@@ -10,8 +10,15 @@ cache:
     - vendor
 
 before_script:
-  - if test -d vendor ; then mkdir -p $GOPATH/pkg/mod && cp -r vendor/* $GOPATH/pkg/mod/ ; fi
-  - go mod download
+  - |
+    if test -d vendor ; then
+      mkdir -vp $GOPATH/pkg/mod
+      cp -r vendor/* $GOPATH/pkg/mod/
+    else
+      go mod download
+    fi
+
+after_script: 
   - go mod vendor
 
 test:
