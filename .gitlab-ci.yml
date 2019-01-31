@@ -6,18 +6,7 @@ image: registry.gitlab.com/lumoslabs/docker-library/golang:1.11-ci
 
 variables: &global_variables
   GOFLAGS: -mod=vendor
-
-# before_script:
-#   - |
-#     if test -d vendor ; then
-#       mkdir -vp $GOPATH/pkg/mod
-#       cp -r vendor/* $GOPATH/pkg/mod/
-#     else
-#       go mod download
-#     fi
-
-# after_script: 
-#   - go mod vendor
+  CGO_ENABLED: "0"
 
 test:
   stage: test
