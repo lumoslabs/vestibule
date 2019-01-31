@@ -82,8 +82,9 @@ require (
 	github.com/sirupsen/logrus v1.3.0 // indirect
 	github.com/smartystreets/assertions v0.0.0-20180927180507-b2de0cb4f26d // indirect
 	github.com/smartystreets/goconvey v0.0.0-20181108003508-044398e4856c // indirect
+	github.com/spf13/afero v1.2.1
 	github.com/spf13/pflag v1.0.3 // indirect
-	github.com/stretchr/testify v1.3.0 // indirect
+	github.com/stretchr/testify v1.3.0
 	go.mozilla.org/gopgagent v0.0.0-20170926210634-4d7ea76ff71a // indirect
 	go.mozilla.org/sops v0.0.0-20181108154941-647d8ed41b61
 	golang.org/x/crypto v0.0.0-20190103213133-ff983b9c42bc // indirect

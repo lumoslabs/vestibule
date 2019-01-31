@@ -1,0 +1,24 @@
+image: golang:1.11
+
+cache:
+  key: ${CI_COMMIT_REF_SLUG}
+  paths:
+    - /go/pkg/mod
+
+stages:
+  - test
+
+test:
+  stage: test
+  tags: [k8s]
+  script: make test
+
+test:race:
+  stage: test
+  tags: [k8s]
+  script: make test-race
+
+test:memory:
+  stage: test
+  tags: [k8s]
+  script: make test-memory
