@@ -16,7 +16,7 @@ COPY --from=build /go/bin/vest /bin/vest
 ENV USER=root
 RUN { \
   echo '#!/usr/bin/dumb-init /bin/sh'; \
-  echo 'exec vest $USER $@'; \
+  echo 'exec /bin/vest $@'; \
   } >/entrypoint.sh \
   && chmod 755 /entrypoint.sh \ 
   && apk add --update dumb-init

@@ -2,12 +2,13 @@ package vault
 
 import "github.com/hashicorp/vault/api"
 
-type VaultProvider struct {
-	Keys []*VaultKey `env:"VAULT_KEYS" envSeparator:":"`
-	c    *api.Client
+// Client is an environ.Provider and github.com/hashicorp/vault/api.Client which will get the requested keys
+type Client struct {
+	*api.Client
+	Keys []*vaultKey `env:"VAULT_KEYS" envSeparator:":"`
 }
 
-type VaultKey struct {
+type vaultKey struct {
 	Path    string
 	Version int
 }

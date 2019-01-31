@@ -7,10 +7,12 @@ import (
 	"strings"
 )
 
+// NewEnviron returns a new blank Environ instance
 func NewEnviron() *Environ {
 	return &Environ{m: make(map[string]string)}
 }
 
+// NewEnvironFromEnv returns a new Environ instance populated from os.Environ
 func NewEnvironFromEnv() *Environ {
 	e := make(map[string]string)
 	for _, item := range os.Environ() {
@@ -22,7 +24,8 @@ func NewEnvironFromEnv() *Environ {
 	return &Environ{m: e}
 }
 
-func (e *Environ) Append(m map[string]string) {
+// Merge takes a map[string]string and adds it to this Environ, overwriting any conflicting keys.
+func (e *Environ) Merge(m map[string]string) {
 	e.Lock()
 	for k, v := range m {
 		e.m[k] = v
@@ -30,12 +33,25 @@ func (e *Environ) Append(m map[string]string) {
 	e.Unlock()
 }
 
+// SafeMerge takes a map[string]string and adds it to this Environ without overwriting keys
+func (e *Environ) SafeMerge(m map[string]string) {
+	e.Lock()
+	for k, v := range m {
+		if _, ok := e.m[k]; !ok {
+			e.m[k] = v
+		}
+	}
+	e.Unlock()
+}
+
+// Set takes a key / value pair and adds it to this Environ
 func (e *Environ) Set(k, v string) {
 	e.Lock()
 	defer e.Unlock()
 	e.m[k] = v
 }
 
+// Load takes a key and returns the value if it exists or false
 func (e *Environ) Load(k string) (v string, ok bool) {
 	e.RLock()
 	defer e.RUnlock()
@@ -43,15 +59,29 @@ func (e *Environ) Load(k string) (v string, ok bool) {
 	return
 }
 
-func (e *Environ) Delete(key string) {
+// Delete takes a key and removes it from this Environ, returning the value
+func (e *Environ) Delete(key string) (v string) {
 	e.Lock()
+	defer e.Unlock()
+
+	v = e.m[key]
 	delete(e.m, key)
-	e.Unlock()
+	return
 }
 
-func (e *Environ) Slice() []string {
-	var s = make([]string, 0)
+// Len returns the length of this Environ
+func (e *Environ) Len() (l int) {
 	e.RLock()
+	defer e.RUnlock()
+	l = len(e.m)
+	return
+}
+
+// Slice returns a sorted []string of key / value pairs from this Environ instance
+// suitable for use in palce of os.Environ()
+func (e *Environ) Slice() []string {
+	e.RLock()
+	var s = make([]string, 0, e.Len())
 	for k, v := range e.m {
 		s = append(s, k+"="+v)
 	}
@@ -60,6 +90,7 @@ func (e *Environ) Slice() []string {
 	return s
 }
 
+// String returns a stringified representation of this Environ
 func (e *Environ) String() string {
 	return fmt.Sprintf("%#q", e.Slice())
 }

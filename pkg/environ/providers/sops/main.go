@@ -21,24 +21,33 @@ import (
 )
 
 const (
-	Name                   = "sops"
+	// Name is the environ.Provider name
+	Name = "sops"
+	// EncryptedFileSeparator is the separator between attributes of the encrypted files in FilesEnvVar
 	EncryptedFileSeparator = ";"
-	DefaultOutputMode      = os.FileMode(0700)
-	FilesEnvVar            = "SOPS_FILES"
+	// DefaultOutputMode is the default FileMode of generated files
+	DefaultOutputMode = os.FileMode(0700)
+	//FilesEnvVar is the environment variable holding the list of encrypted files
+	FilesEnvVar = "SOPS_FILES"
 )
 
-func NewSopsProvider() (environ.Provider, error) {
+// New returns a Decoder object as an environ.Environ or an error if configuring failed.
+func New() (environ.Provider, error) {
+	defer func() { os.Unsetenv(FilesEnvVar) }()
 	var (
-		sp = &SopsProvider{}
-		p  = env.CustomParsers{reflect.TypeOf(EncryptedFile{}): encryptedFileParser}
+		d = &Decoder{}
+		p = env.CustomParsers{reflect.TypeOf(EncryptedFile{}): encryptedFileParser}
 	)
-	return sp, env.ParseWithFuncs(sp, p)
+	return d, env.ParseWithFuncs(d, p)
 }
 
-func (sp *SopsProvider) AddToEnviron(e *environ.Environ) error {
+// AddToEnviron uses go.mozilla.org/sops/decrypt to decrypt the file, then either unmarshals the result into
+// a map[string]string and merges that into an environ.Environ object, or writes the cleartext out to the given
+// output path if set
+func (d *Decoder) AddToEnviron(e *environ.Environ) error {
 	os.Unsetenv(FilesEnvVar)
 	e.Delete(FilesEnvVar)
-	for _, f := range sp.Files {
+	for _, f := range d.Files {
 		data, er := f.Decrypt()
 		if er != nil {
 			return er
@@ -49,23 +58,25 @@ func (sp *SopsProvider) AddToEnviron(e *environ.Environ) error {
 				return er
 			}
 		} else {
-			if env, er := f.Decode(data); er == nil {
+			if env, er := f.Unmarshal(data); er == nil {
 				envv := make(map[string]string, len(env))
 				for k, v := range env {
 					envv[strings.TrimRight(k, sops.DefaultUnencryptedSuffix)] = v
 				}
-				e.Append(envv)
+				e.SafeMerge(envv)
 			}
 		}
 	}
 	return nil
 }
 
+// Decrypt uses go.mozilla.org/sops/decrypt to decrypt an encrypted file
 func (ef *EncryptedFile) Decrypt() ([]byte, error) {
 	return decrypt.File(ef.Path, ef.Ext)
 }
 
-func (ef *EncryptedFile) Decode(data []byte) (map[string]string, error) {
+// Unmarshal uses the configured unmarshal function to unmarshal a decrypted file
+func (ef *EncryptedFile) Unmarshal(data []byte) (map[string]string, error) {
 	env := make(map[string]string)
 	if er := ef.UnmarshalFunc(data, &env); er != nil {
 		return nil, er
@@ -73,6 +84,7 @@ func (ef *EncryptedFile) Decode(data []byte) (map[string]string, error) {
 	return env, nil
 }
 
+// Write writes out cleartext to the configured output path
 func (ef *EncryptedFile) Write(data []byte) error {
 	mode := DefaultOutputMode
 	if ef.OutputMode > 0 {

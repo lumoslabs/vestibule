@@ -12,8 +12,16 @@ import (
 
 const version = "0.0.1"
 
-func getVersion() string {
-	return fmt.Sprintf(`%s (%s on %s/%s; %s)`, version, runtime.Version(), runtime.GOOS, runtime.GOARCH, runtime.Compiler)
+var (
+	// Ref is the buildtime code ref
+	Ref string
+	// Sha is the buildtime code sha
+	Sha string
+)
+
+func appVersion() string {
+	ver := []string{version, Ref, Sha}
+	return fmt.Sprintf(`%s (%s on %s/%s; %s)`, strings.Join(ver, "/"), runtime.Version(), runtime.GOOS, runtime.GOARCH, runtime.Compiler)
 }
 
 func usage() string {
@@ -25,7 +33,10 @@ Usage: {{ .Self }} user-spec command [args]
 
   Environment Variables:
 
-    VAULT_PROVIDERS=provider1,...
+    VEST_USER=user[:group]
+      The user [and group] to run the command under. Overrides commandline if set.
+
+    VEST_PROVIDERS=provider1,...
       Comma separated list of enabled providers. By default only vault is enabled.
 
     SOPS_FILES=/path/to/file[;/path/to/output[;mode]]:...
@@ -61,7 +72,7 @@ Usage: {{ .Self }} user-spec command [args]
 		Version string
 	}{
 		Self:    filepath.Base(os.Args[0]),
-		Version: getVersion(),
+		Version: appVersion(),
 	}))
 	return strings.TrimSpace(b.String()) + "\n"
 }

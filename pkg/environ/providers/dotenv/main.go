@@ -11,14 +11,19 @@ import (
 )
 
 const (
-	Name        = "dotenv"
+	// Name is the name of this Provider
+	Name = "dotenv"
+
+	// FilesEnvVar is the environment variable which lists the files to load
 	FilesEnvVar = "DOTENV_FILES"
 )
 
-func NewDotenvProvider() (environ.Provider, error) {
+// New returns a new Parser as an environ.Provider or an error if configuring failed
+// if no files are listed, will search in CWD for any .env files.
+func New() (environ.Provider, error) {
 	defer func() { os.Unsetenv(FilesEnvVar) }()
 
-	var de = &DotenvProvider{}
+	var de = &Parser{}
 	if er := env.Parse(de); er != nil {
 		return nil, er
 	}
@@ -28,15 +33,16 @@ func NewDotenvProvider() (environ.Provider, error) {
 	return de, nil
 }
 
-func (de *DotenvProvider) AddToEnviron(e *environ.Environ) error {
+// AddToEnviron uses godotenv to read all specified dotenv files and add them to the environ.Environ without overwriting
+func (p *Parser) AddToEnviron(e *environ.Environ) error {
 	os.Unsetenv(FilesEnvVar)
 	e.Delete(FilesEnvVar)
 
-	em, er := godotenv.Read(de.Files...)
+	em, er := godotenv.Read(p.Files...)
 	if er != nil {
 		return er
 	}
-	e.Append(em)
+	e.SafeMerge(em)
 	return nil
 }
 

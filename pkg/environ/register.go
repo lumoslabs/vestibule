@@ -6,6 +6,7 @@ import (
 
 var providers map[string]ProviderFactory
 
+// RegisterProvider adds the named Provider's factory function to the map of known Providers
 func RegisterProvider(name string, fn ProviderFactory) {
 	if providers == nil {
 		providers = make(map[string]ProviderFactory)
@@ -13,11 +14,20 @@ func RegisterProvider(name string, fn ProviderFactory) {
 	providers[name] = fn
 }
 
+// GetProvider returns a new instance of the named Provider or an unregistered provider error
 func GetProvider(name string) (Provider, error) {
 	fn, ok := providers[name]
 	if !ok {
-		return nil, fmt.Errorf("Unregistered provider %s", name)
+		return nil, newUnregisteredProviderError(name)
 	}
 
 	return fn()
+}
+
+func newUnregisteredProviderError(name string) *unregisteredProviderError {
+	return &unregisteredProviderError{name}
+}
+
+func (e *unregisteredProviderError) Error() string {
+	return fmt.Sprintf("Unregistered provider %s", e.provider)
 }

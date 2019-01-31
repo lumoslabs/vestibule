@@ -16,28 +16,39 @@ import (
 )
 
 const (
-	Name                = "ejson"
+	// Name is the Provider name
+	Name = "ejson"
+
+	// KeyPairEnvSeparator is the separator between key pairs in the KeysEnvVar
 	KeyPairEnvSeparator = ":"
-	KeyPairSeparator    = ";"
-	FilesEnvVar         = "EJSON_FILES"
-	KeysEnvVar          = "EJSON_KEYS"
+
+	// KeyPairSeparator is the separator betwen a public and private key in the KeysEnvVar
+	KeyPairSeparator = ";"
+
+	// FilesEnvVar is the environment variable holding the ejson file list
+	FilesEnvVar = "EJSON_FILES"
+
+	// KeysEnvVar is the environment variable holding the ejson public / private key pairs
+	KeysEnvVar = "EJSON_KEYS"
 )
 
-func NewEjsonProvider() (environ.Provider, error) {
+// New returns a new Decoder instance or an error if configuring failed.
+// If no ejson files are listed in FilesEnvVar, then will search in CWD for .ejson files
+func New() (environ.Provider, error) {
 	defer func() {
 		os.Unsetenv(FilesEnvVar)
 		os.Unsetenv(KeysEnvVar)
 	}()
 
-	var ep = new(EjsonProvider)
+	var d = new(Decoder)
 	p := env.CustomParsers{reflect.TypeOf(KeyPairMap{}): keyPairMapParser}
-	if er := env.ParseWithFuncs(ep, p); er != nil {
+	if er := env.ParseWithFuncs(d, p); er != nil {
 		return nil, er
 	}
-	if ep.Files == nil || len(ep.Files) == 0 {
-		ep.Files = findEjsonFiles()
+	if d.Files == nil || len(d.Files) == 0 {
+		d.Files = findEjsonFiles()
 	}
-	return ep, nil
+	return d, nil
 }
 
 func keyPairMapParser(s string) (interface{}, error) {
@@ -55,11 +66,13 @@ func keyPairMapParser(s string) (interface{}, error) {
 	return KeyPairMap(kpm), nil
 }
 
-func (ep *EjsonProvider) AddToEnviron(e *environ.Environ) error {
+// AddToEnviron uses github.com/Shopify/ejson to decrypt the given ejson files using the provided key pairs. Cleartext
+// file data is decoded into map[string]string objects and merged with the provided environ.Environ
+func (d *Decoder) AddToEnviron(e *environ.Environ) error {
 	e.Delete(FilesEnvVar)
 	e.Delete(KeysEnvVar)
-	for _, f := range ep.Files {
-		privkey, er := matchPrivateKey(f, ep.KeyPairs)
+	for _, f := range d.Files {
+		privkey, er := matchPrivateKey(f, d.KeyPairs)
 		if er != nil {
 			return er
 		}
@@ -78,7 +91,7 @@ func (ep *EjsonProvider) AddToEnviron(e *environ.Environ) error {
 		for k, v := range env {
 			envv[strings.TrimLeft(k, "_")] = v
 		}
-		e.Append(envv)
+		e.SafeMerge(envv)
 	}
 	return nil
 }

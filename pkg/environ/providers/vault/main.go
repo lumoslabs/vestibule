@@ -13,40 +13,43 @@ import (
 )
 
 const (
-	Name              = "vault"
+	// Name is the Provider name
+	Name = "vault"
+	// VaultKeySeparator is the separator between key and version in KeysEnvVar
 	VaultKeySeparator = "@"
-	KeysEnvVar        = "VAULT_KEYS"
+	// KeysEnvVar is the environment variable holding the keys to lookup
+	KeysEnvVar = "VAULT_KEYS"
 )
 
-func NewVaultProvider() (environ.Provider, error) {
+// New returns a Client as an environ.Provider or an error if configuring failed. If running in a Kubernetes
+// cluster and not provided a token, will use the service account token.
+func New() (environ.Provider, error) {
+	defer func() { os.Unsetenv(KeysEnvVar) }()
 	vc, er := api.NewClient(api.DefaultConfig())
 	if er != nil {
 		return nil, er
 	}
 
-	if c, er := rest.InClusterConfig(); er == nil {
+	if c, er := rest.InClusterConfig(); er == nil && vc.Token() == "" {
 		vc.SetToken(c.BearerToken)
 	}
 
-	v := &VaultProvider{c: vc}
-	p := env.CustomParsers{reflect.TypeOf(VaultKey{}): vaultKeyParser}
+	v := &Client{Client: vc}
+	p := env.CustomParsers{reflect.TypeOf(vaultKey{}): vaultKeyParser}
 	if er := env.ParseWithFuncs(v, p); er != nil {
 		return nil, er
 	}
-	os.Unsetenv(KeysEnvVar)
 	return v, nil
 }
 
-func (v *VaultProvider) AddToEnviron(e *environ.Environ) error {
+// AddToEnviron iterates through the given []VaultKeys, decoding the data returned from each key into a map[string]string
+// and merging it into the environ.Environ
+func (c *Client) AddToEnviron(e *environ.Environ) error {
 	e.Delete(KeysEnvVar)
-	for _, key := range v.Keys {
-		data := make(map[string][]string)
-		data["version"] = []string{"0"}
-		if key.Version != 0 {
-			data["version"] = []string{"1"}
-		}
-
-		s, er := v.c.Logical().ReadWithData(key.Path, data)
+	for _, key := range c.Keys {
+		s, er := c.Logical().ReadWithData(key.Path, map[string][]string{
+			"version": []string{strconv.Itoa(key.Version)},
+		})
 		if er != nil {
 			return er
 		}
@@ -57,15 +60,15 @@ func (v *VaultProvider) AddToEnviron(e *environ.Environ) error {
 				env[k] = s
 			}
 		}
-		e.Append(env)
+		e.SafeMerge(env)
 	}
 	return nil
 }
 
 func vaultKeyParser(s string) (interface{}, error) {
 	var (
-		bits = strings.Split(s, VaultKeySeparator)
-		k    = VaultKey{Path: bits[0]}
+		bits = strings.SplitN(s, VaultKeySeparator, 2)
+		k    = vaultKey{Path: bits[0]}
 	)
 
 	if len(bits) == 1 {

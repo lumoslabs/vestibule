@@ -19,7 +19,8 @@ import (
 	"github.com/lumoslabs/vestibule/pkg/environ"
 )
 
-type Config struct {
+type config struct {
+	User      string   `env:"VEST_USER"`
 	Providers []string `env:"VEST_PROVIDERS" envSeparator:"," envDefault:"vault"`
 }
 
@@ -36,23 +37,19 @@ func main() {
 			fmt.Println(usage())
 			os.Exit(0)
 		case "--version", "-v":
-			fmt.Println(getVersion())
+			fmt.Println(appVersion())
 			os.Exit(0)
 		}
 	}
-	if len(os.Args) <= 2 {
-		log.Println(usage())
-		os.Exit(1)
-	}
 
-	environ.RegisterProvider(dotenv.Name, dotenv.NewDotenvProvider)
-	environ.RegisterProvider(ejson.Name, ejson.NewEjsonProvider)
-	environ.RegisterProvider(vault.Name, vault.NewVaultProvider)
-	environ.RegisterProvider(sops.Name, sops.NewSopsProvider)
+	environ.RegisterProvider(dotenv.Name, dotenv.New)
+	environ.RegisterProvider(ejson.Name, ejson.New)
+	environ.RegisterProvider(vault.Name, vault.New)
+	environ.RegisterProvider(sops.Name, sops.New)
 
 	var (
 		e  = environ.NewEnvironFromEnv()
-		c  = new(Config)
+		c  = new(config)
 		wg sync.WaitGroup
 	)
 
@@ -74,19 +71,38 @@ func main() {
 	}
 	wg.Wait()
 
-	os.Unsetenv("HOME")
-	e.Delete("HOME")
+	if name, er := exec.LookPath(os.Args[1]); er != nil {
+		os.Unsetenv("HOME")
+		e.Delete("HOME")
 
-	if err := SetupUser(os.Args[1], e); err != nil {
-		log.Fatalf("error: failed switching to %q: %v", os.Args[1], err)
-	}
+		usr := os.Args[1]
+		if c.User != "" {
+			usr = c.User
+		}
+		if er := SetupUser(usr, e); er != nil {
+			log.Fatalf("error: failed switching to %q: %v", usr, er)
+		}
 
-	name, err := exec.LookPath(os.Args[2])
-	if err != nil {
-		log.Fatalf("error: %v", err)
-	}
+		name, er = exec.LookPath(os.Args[2])
+		if er != nil {
+			log.Fatalf("error: %v", er)
+		}
 
-	if err = syscall.Exec(name, os.Args[2:], e.Slice()); err != nil {
-		log.Fatalf("error: exec failed: %v", err)
+		if er = syscall.Exec(name, os.Args[2:], e.Slice()); er != nil {
+			log.Fatalf("error: exec failed: %v", er)
+		}
+	} else {
+		if c.User != "" {
+			os.Unsetenv("HOME")
+			e.Delete("HOME")
+
+			if er := SetupUser(c.User, e); er != nil {
+				log.Fatalf("error: failed switching to %q: %v", c.User, er)
+			}
+		}
+
+		if er = syscall.Exec(name, os.Args[1:], e.Slice()); er != nil {
+			log.Fatalf("error: exec failed: %v", er)
+		}
 	}
 }

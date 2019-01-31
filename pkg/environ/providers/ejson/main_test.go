@@ -19,7 +19,7 @@ var (
 )
 
 func TestIsProvider(t *testing.T) {
-	assert.Implements(t, (*environ.Provider)(nil), new(EjsonProvider))
+	assert.Implements(t, (*environ.Provider)(nil), new(Decoder))
 }
 
 func TestAddToEnviron(t *testing.T) {
@@ -70,12 +70,12 @@ func TestAddToEnviron(t *testing.T) {
 		os.Setenv(KeysEnvVar, strings.Join(keys, KeyPairEnvSeparator))
 		os.Setenv(FilesEnvVar, strings.Join(files, ":"))
 
-		ej, er := NewEjsonProvider()
+		ej, er := New()
 		assert.NoErrorf(t, er, tt.name)
 		tt.errorFunc(t, ej.AddToEnviron(e), tt.name)
 
 		ea := environ.NewEnviron()
-		ea.Append(tt.keyvals)
+		ea.SafeMerge(tt.keyvals)
 		assert.Equalf(t, e.String(), ea.String(), tt.name)
 
 		for _, f := range files {
