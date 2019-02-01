@@ -21,7 +21,22 @@ changelog:
     - '^docs:'
     - '^test:'
 dockers:
-  - image_templates:
+  - dockerfile: docker/alpine/Dockerfile
+    binaries: [vest]
+    image_templates:
+      - "quay.io/lumoslabs/vestibule:{{ .Tag }}-alpine"
+      - "quay.io/lumoslabs/vestibule:{{ .Major }}-alpine"
+      - "quay.io/lumoslabs/vestibule:{{ .Major }}.{{ .Minor }}-alpine"
+      - "registry.gitlab.com/lumoslabs/vestibule:{{ .Tag }}-alpine"
+      - "registry.gitlab.com/lumoslabs/vestibule:{{ .Major }}-alpine"
+      - "registry.gitlab.com/lumoslabs/vestibule:{{ .Major }}.{{ .Minor }}-alpine"
+
+  - dockerfile: docker/stretch/Dockerfile
+    binaries: [vest]
+    image_templates:
+      - "quay.io/lumoslabs/vestibule:{{ .Tag }}-stretch"
+      - "quay.io/lumoslabs/vestibule:{{ .Major }}-stretch"
+      - "quay.io/lumoslabs/vestibule:{{ .Major }}.{{ .Minor }}-stretch"
       - "quay.io/lumoslabs/vestibule:{{ .Tag }}"
       - "quay.io/lumoslabs/vestibule:{{ .Major }}"
       - "quay.io/lumoslabs/vestibule:{{ .Major }}.{{ .Minor }}"
@@ -29,4 +44,7 @@ dockers:
       - "registry.gitlab.com/lumoslabs/vestibule:{{ .Tag }}"
       - "registry.gitlab.com/lumoslabs/vestibule:{{ .Major }}"
       - "registry.gitlab.com/lumoslabs/vestibule:{{ .Major }}.{{ .Minor }}"
+      - "registry.gitlab.com/lumoslabs/vestibule:{{ .Tag }}-stretch"
+      - "registry.gitlab.com/lumoslabs/vestibule:{{ .Major }}-stretch"
+      - "registry.gitlab.com/lumoslabs/vestibule:{{ .Major }}.{{ .Minor }}-stretch"
       - "registry.gitlab.com/lumoslabs/vestibule:latest"
