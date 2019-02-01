@@ -1,5 +1,9 @@
 # Changelog
 
+## v0.0.4
+
+* Fix gitlab-ci.yml
+
 ## v0.0.3
 
 * Gitlab-ci support
