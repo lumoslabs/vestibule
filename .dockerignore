@@ -1,8 +1,0 @@
-*.md
-*.ejson
-.vscode
-.env*
-.git*
-
-vendor
-bin
