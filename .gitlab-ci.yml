@@ -6,7 +6,6 @@ image: registry.gitlab.com/lumoslabs/docker-library/golang:1.11-ci
 
 variables: &global_variables
   GOFLAGS: -mod=vendor
-  CGO_ENABLED: "0"
 
 test:
   stage: test
