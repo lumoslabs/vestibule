@@ -1,5 +1,11 @@
 # Changelog
 
+## v0.0.3
+
+* Gitlab-ci support
+* Include vendored dependencies
+* Goreleaser support
+
 ## 0.0.2
 
 * Fix some bugs around user switching
