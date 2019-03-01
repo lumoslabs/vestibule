@@ -93,6 +93,8 @@ func (c *Client) AddToEnviron(e *environ.Environ) error {
 		if len(bits) < 2 {
 			continue
 		}
+
+		// Add 'data' as the second path element if it does not exist
 		if bits[1] != "data" {
 			bits = append(bits, "")
 			copy(bits[2:], bits[1:])

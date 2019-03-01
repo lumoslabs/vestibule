@@ -21,3 +21,15 @@ _Ordered oldest -> newest_
 ## v0.0.4
 
 * Fix gitlab-ci.yml
+
+## v0.1.0
+
+*  Vault Provider: fix authentication
+   *  Add new auth env vars: 
+      *  `VAULT_AUTH_METHOD`
+      *  `VAULT_AUTH_PATH`
+      *  `VAULT_AUTH_DATA`
+      *  `VAULT_APP_ROLE`
+   *  Support actually retrieving a session token from Vault
+*  Vault Provider: change kv env var from `VAULT_KEYS` to `VAULT_KV_KEYS`
+*  Vault Provider: clean up kv paths
