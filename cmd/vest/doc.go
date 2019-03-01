@@ -40,10 +40,22 @@ Usage: {{ .Self }} user-spec command [args]
       The decrypted cleartext file can be optionally written out to a separate location (with optional filemode)
       or will be parsed into a map[string]string and injected into Environ
     
-    VAULT_KEYS=/path/to/key[@version]:...
+    VAULT_KV_KEYS=/path/to/key[@version]:...
       If VAULT_KEYS is set, will iterate over each key (colon separated), attempting to get the secret from Vault.
       Secrets are pulled at the optional version or latest, then injected into Environ. If running in Kubernetes,
       the Pod's ServiceAccount token will automatically be looked up and used for Vault authentication.
+    
+    VAULT_AUTH_METHOD=kubernetes
+      Authentication method for vault. Default is kubernetes.
+
+    VAULT_APP_ROLE
+      App role name to use with the kubernetes authentication method.
+
+    VAULT_AUTH_PATH
+      Authentication path for vault authentication - e.g. okta/login/:user. Overrides VAULT_AUTH_METHOD if set.
+    
+    VAULT_AUTH_DATA
+      Data payload to send with authentication request. JSON object.
     
     VAULT_*
       All vault client configuration environment variables are respected.
