@@ -4,7 +4,7 @@ stages:
 
 .base:
   tags: [k8s-ops]
-  image: registry.gitlab.com/lumoslabs/docker-library/golang:1.11-ci
+  image: registry.gitlab.com/lumoslabs/docker-library/golang:1.12-ci
   variables:
     GOFLAGS: -mod=vendor
 
