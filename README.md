@@ -1,5 +1,9 @@
 # vestibule
 
+![Github PR check contexts](https://img.shields.io/github/status/contexts/pulls/lumoslabs/vestibule/1.svg)
+![Github liscense](https://img.shields.io/github/license/lumoslabs/vestibule.svg)
+![Github release](https://img.shields.io/github/release-pre/lumoslabs/vestibule.svg)
+
 A [gosu](https://github.com/tianon/gosu) port which will load secrets from various secrets backends into the environment before exec'ing your baby. [Vault](https://www.vaultproject.io) and / or [Sops](https://github.com/mozilla/sops)
 
 ## Providers
@@ -49,7 +53,4 @@ Usage: vest user-spec command [args]
     DOTENV_FILES=/path/to/file1:...
       if DOTENV_FILES is set, will iterate over each file, parse and inject into Environ. If DOTENV_FILES is
       not set, will look for any .env files in CWD.
-
-vest version: 0.0.1 (go1.11.4 on linux/amd64; gc)
-vest license: GPL-3 (full text at https://github.com/lumoslabs/vestibule)
 ```

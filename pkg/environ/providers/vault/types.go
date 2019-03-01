@@ -5,10 +5,18 @@ import "github.com/hashicorp/vault/api"
 // Client is an environ.Provider and github.com/hashicorp/vault/api.Client which will get the requested keys
 type Client struct {
 	*api.Client
-	Keys []*vaultKey `env:"VAULT_KEYS" envSeparator:":"`
+	AuthMethod string `env:"VAULT_AUTH_METHOD" envDefault:"kubernetes"`
+	AuthPath   string `env:"VAULT_AUTH_PATH"`
+	AuthData   string `env:"VAULT_AUTH_DATA"`
+	AppRole    string `env:"VAULT_APP_ROLE"`
+	Keys       KVKeys `env:"VAULT_KV_KEYS"`
 }
 
-type vaultKey struct {
+// KVKeys is an alias for []*KVKey. Needed for caarlos0/env to support parsing.
+type KVKeys []*KVKey
+
+// KVKey is a kv ver2 key in Vault
+type KVKey struct {
 	Path    string
-	Version int
+	Version *int
 }

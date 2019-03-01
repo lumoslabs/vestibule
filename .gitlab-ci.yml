@@ -2,33 +2,33 @@ stages:
   - test
   - release
 
-image: registry.gitlab.com/lumoslabs/docker-library/golang:1.11-ci
-
-variables: &global_variables
-  GOFLAGS: -mod=vendor
+.base:
+  tags: [k8s-ops]
+  image: registry.gitlab.com/lumoslabs/docker-library/golang:1.12-ci
+  variables:
+    GOFLAGS: -mod=vendor
 
 test:
+  extends: .base
   stage: test
-  tags: [k8s]
   script: make test
 
 test:race:
+  extends: .base
   stage: test
-  tags: [k8s]
   script: make test-race
 
 test:memory:
+  extends: .base
   stage: test
-  tags: [k8s]
   script: make test-memory
 
 release:test:
+  extends: .base
   stage: release
-  tags: [k8s]
   services:
     - docker:dind
   variables:
-    <<: *global_variables
     DOCKER_HOST: tcp://127.0.0.1:2375/
     DOCKER_DRIVER: overlay2
   script:
@@ -37,14 +37,13 @@ release:test:
     - goreleaser release --rm-dist --snapshot
 
 release:
+  extends: .base
   stage: release
-  tags: [k8s]
   only:
     - tags
   services:
     - docker:dind
   variables:
-    <<: *global_variables
     DOCKER_HOST: tcp://127.0.0.1:2375/
     DOCKER_DRIVER: overlay2
   script:
