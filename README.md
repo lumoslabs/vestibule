@@ -1,5 +1,9 @@
 # vestibule
 
+[![Github PR check contexts](https://img.shields.io/github/status/contexts/pulls/lumoslabs/vestibule)]
+[![Github liscense](https://img.shields.io/github/license/lumoslabs/vestibule)]
+[![Github release](https://img.shields.io/github/release-pre/lumoslabs/vestibule)]
+
 A [gosu](https://github.com/tianon/gosu) port which will load secrets from various secrets backends into the environment before exec'ing your baby. [Vault](https://www.vaultproject.io) and / or [Sops](https://github.com/mozilla/sops)
 
 ## Providers
