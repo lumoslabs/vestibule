@@ -49,7 +49,4 @@ Usage: vest user-spec command [args]
     DOTENV_FILES=/path/to/file1:...
       if DOTENV_FILES is set, will iterate over each file, parse and inject into Environ. If DOTENV_FILES is
       not set, will look for any .env files in CWD.
-
-vest version: 0.0.1 (go1.11.4 on linux/amd64; gc)
-vest license: GPL-3 (full text at https://github.com/lumoslabs/vestibule)
 ```
