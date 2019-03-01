@@ -1,14 +1,10 @@
 # Changelog
 
-## v0.0.4
+_Ordered oldest -> newest_
 
-* Fix gitlab-ci.yml
+## 0.0.1
 
-## v0.0.3
-
-* Gitlab-ci support
-* Include vendored dependencies
-* Goreleaser support
+* initial release for testing
 
 ## 0.0.2
 
@@ -16,6 +12,12 @@
 * Add automatic file discovery to ejson and dotenv providers
 * Comments!
 
-## 0.0.1
+## v0.0.3
 
-* initial release for testing
+* Gitlab-ci support
+* Include vendored dependencies
+* Goreleaser support
+
+## v0.0.4
+
+* Fix gitlab-ci.yml
