@@ -166,6 +166,7 @@ github.com/spf13/afero
 github.com/spf13/afero/mem
 # github.com/stretchr/testify v1.3.0
 github.com/stretchr/testify/assert
+github.com/stretchr/testify/require
 # go.mozilla.org/gopgagent v0.0.0-20170926210634-4d7ea76ff71a
 go.mozilla.org/gopgagent
 # go.mozilla.org/sops v0.0.0-20181108154941-647d8ed41b61
