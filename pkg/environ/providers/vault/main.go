@@ -111,7 +111,7 @@ func (c *Client) AddToEnviron(e *environ.Environ) error {
 			d["version"] = []string{strconv.Itoa(*(key.Version))}
 		}
 		s, er := c.Logical().ReadWithData(p, d)
-		if er != nil {
+		if er != nil || s == nil {
 			return er
 		}
 
@@ -146,7 +146,7 @@ func vaultKeyParser(s string) (interface{}, error) {
 
 	for _, k := range strings.Split(s, VaultKeysSeparator) {
 		bits := strings.SplitN(k, VaultKeySeparator, 2)
-		key := KVKey{Path: bits[0], Version: nil}
+		key := KVKey{Path: strings.TrimLeft(bits[0], "/"), Version: nil}
 
 		keys = append(keys, &key)
 

@@ -7,7 +7,7 @@ type Client struct {
 	*api.Client
 	AuthMethod string `env:"VAULT_AUTH_METHOD" envDefault:"kubernetes"`
 	AuthPath   string `env:"VAULT_AUTH_PATH"`
-	AuthData   string `env:"VAULT_AUTH_DATA"`
+	AuthData   string `env:"VAULT_AUTH_DATA" envDefault:"{}"`
 	AppRole    string `env:"VAULT_APP_ROLE"`
 	Keys       KVKeys `env:"VAULT_KV_KEYS"`
 }

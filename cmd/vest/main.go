@@ -48,7 +48,7 @@ func main() {
 	environ.RegisterProvider(sops.Name, sops.New)
 
 	var (
-		e  = environ.NewEnvironFromEnv()
+		e  = environ.NewFromEnv()
 		c  = new(config)
 		wg sync.WaitGroup
 	)
