@@ -94,6 +94,10 @@ func (c *Client) AddToEnviron(e *environ.Environ) error {
 			continue
 		}
 
+		if bits[0] == "" {
+			bits = bits[1:]
+		}
+
 		// Add 'data' as the second path element if it does not exist
 		if bits[1] != "data" {
 			bits = append(bits, "")
