@@ -3,13 +3,17 @@ package environ
 import (
 	"fmt"
 	"os"
+	"regexp"
 	"sort"
 	"strings"
 )
 
+// 1 or more non-word characters
+const regex = "[^0-9A-Za-z_]+"
+
 // NewEnviron returns a new blank Environ instance
 func NewEnviron() *Environ {
-	return &Environ{m: make(map[string]string)}
+	return &Environ{m: make(map[string]string), re: regexp.MustCompile(regex)}
 }
 
 // NewEnvironFromEnv returns a new Environ instance populated from os.Environ
@@ -21,7 +25,7 @@ func NewEnvironFromEnv() *Environ {
 			e[bits[0]] = bits[1]
 		}
 	}
-	return &Environ{m: e}
+	return &Environ{m: e, re: regexp.MustCompile(regex)}
 }
 
 // Merge takes a map[string]string and adds it to this Environ, overwriting any conflicting keys.
@@ -83,7 +87,8 @@ func (e *Environ) Slice() []string {
 	e.RLock()
 	var s = make([]string, 0, e.Len())
 	for k, v := range e.m {
-		s = append(s, k+"="+v)
+		key := strings.ToUpper(e.re.ReplaceAllString(k, "_"))
+		s = append(s, key+"="+v)
 	}
 	e.RUnlock()
 	sort.Strings(s)

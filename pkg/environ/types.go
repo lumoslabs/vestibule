@@ -1,11 +1,15 @@
 package environ
 
-import "sync"
+import (
+	"regexp"
+	"sync"
+)
 
 // Environ is a concurrency safe-ish map[string]string for holding environment variables
 type Environ struct {
 	sync.RWMutex
-	m map[string]string
+	m  map[string]string
+	re *regexp.Regexp
 }
 
 // Provider is a secrets provider able to inject variables into the environment
