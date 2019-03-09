@@ -184,7 +184,7 @@ func TestAddToEnviron(t *testing.T) {
 			assert.True(t, ok)
 			assert.Equal(t, "1234", ak)
 
-			content, _ := afero.ReadFile(fs, awsCredentialsFilePath)
+			content, _ := afero.ReadFile(fs, c.(*Client).AwsCredFile)
 			assert.Equal(t, fmt.Sprintf(awsCredentialsFileFmt, "1234", "1234"), string(content))
 		}
 
