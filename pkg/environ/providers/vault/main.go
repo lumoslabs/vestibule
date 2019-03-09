@@ -135,7 +135,30 @@ func (c *Client) AddToEnviron(e *environ.Environ) error {
 				env[k] = s
 			}
 		}
+
 		e.SafeMerge(env)
+	}
+
+	if c.IamRole != "" {
+		route := "aws/sts/" + c.IamRole
+		iam, er := c.Logical().Read(route)
+		if er != nil {
+			return er
+		}
+
+		accessKey, ok := iam.Data["access_key"].(string)
+		if !ok {
+			return fmt.Errorf("Unexpected response from Vault. route=%s", route)
+		}
+		secretKey, ok := iam.Data["secret_key"].(string)
+		if !ok {
+			return fmt.Errorf("Unexpected response from Vault. route=%s", route)
+		}
+
+		e.SafeMerge(map[string]string{
+			"AWS_ACCESS_KEY_ID":     accessKey,
+			"AWS_SECRET_ACCESS_KEY": secretKey,
+		})
 	}
 	return nil
 }

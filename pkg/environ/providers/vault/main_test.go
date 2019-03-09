@@ -14,26 +14,38 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-const vaultAuthResponse = `{
-  "lease_duration": 100,
-  "renewable": true,
-  "auth": {
-    "client_token": "1234-5678",
-    "accessor": "1234-5678",
-    "policies": ["default"]
-  }
-}`
-
-const vaultSecretDataResponse = `{
-  "data": {
-    "data": {
-      "foo": "bar"
-    },
-    "metadata": {
-      "version": %d
+const (
+	vaultAuthResponse = `
+  {
+    "lease_duration": 100,
+    "renewable": true,
+    "auth": {
+      "client_token": "1234-5678",
+      "accessor": "1234-5678",
+      "policies": ["default"]
     }
-  }
-}`
+  }`
+
+	vaultSecretDataResponse = `
+  {
+    "data": {
+      "data": {
+        "foo": "bar"
+      },
+      "metadata": {
+        "version": %d
+      }
+    }
+  }`
+
+	vaultAWSResponse = `
+  {
+    "data": {
+      "access_key": "1234",
+      "secret_key": "1234"
+    }
+  }`
+)
 
 func testServer() *httptest.Server {
 	return httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -52,6 +64,8 @@ func testServer() *httptest.Server {
 			}
 
 			fmt.Fprintf(w, fmt.Sprintf(vaultSecretDataResponse, version))
+		case strings.HasPrefix(r.RequestURI, "/v1/aws/sts"):
+			fmt.Fprintln(w, vaultAWSResponse)
 		}
 	}))
 }
@@ -125,9 +139,12 @@ func TestKeyParser(t *testing.T) {
 func TestAddToEnviron(t *testing.T) {
 	tt := []struct {
 		keys string
+		iam  string
 	}{
-		{"kv/foo/bar"},
-		{"/kv/data/foo/bar"},
+		{"kv/foo/bar", ""},
+		{"/kv/data/foo/bar", ""},
+		{"kv/foo/bar", "my-role"},
+		{"kv/foo/bar@2", "my-role"},
 	}
 
 	ts := testServer()
@@ -140,15 +157,32 @@ func TestAddToEnviron(t *testing.T) {
 
 	for _, test := range tt {
 		os.Setenv("VAULT_KV_KEYS", test.keys)
+		if test.iam != "" {
+			os.Setenv("VAULT_IAM_ROLE", test.iam)
+		}
 
 		c, er := New()
 		require.NoError(t, er)
 
 		e := environ.New()
 		c.AddToEnviron(e)
-		assert.Equal(t, 1, e.Len())
+		if test.iam != "" {
+			assert.Equal(t, 3, e.Len())
+		} else {
+			assert.Equal(t, 1, e.Len())
+		}
+
 		val, ok := e.Load("foo")
 		assert.True(t, ok)
 		assert.Equal(t, "bar", val)
+
+		if test.iam != "" {
+			ak, ok := e.Load("AWS_ACCESS_KEY_ID")
+			assert.True(t, ok)
+			assert.Equal(t, "1234", ak)
+		}
+
+		os.Unsetenv("VAULT_KV_KEYS")
+		os.Unsetenv("VAULT_IAM_ROLE")
 	}
 }

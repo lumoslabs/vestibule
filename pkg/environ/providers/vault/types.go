@@ -9,6 +9,7 @@ type Client struct {
 	AuthPath   string `env:"VAULT_AUTH_PATH"`
 	AuthData   string `env:"VAULT_AUTH_DATA" envDefault:"{}"`
 	AppRole    string `env:"VAULT_APP_ROLE"`
+	IamRole    string `env:"VAULT_IAM_ROLE"`
 	Keys       KVKeys `env:"VAULT_KV_KEYS"`
 }
 

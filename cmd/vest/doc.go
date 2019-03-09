@@ -51,6 +51,9 @@ Usage: {{ .Self }} user-spec command [args]
     VAULT_APP_ROLE
       App role name to use with the kubernetes authentication method.
 
+    VAULT_IAM_ROLE
+      IAM role to request from vault.
+
     VAULT_AUTH_PATH
       Authentication path for vault authentication - e.g. okta/login/:user. Overrides VAULT_AUTH_METHOD if set.
     
