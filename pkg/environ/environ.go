@@ -11,13 +11,13 @@ import (
 // 1 or more non-word characters
 const regex = "[^0-9A-Za-z_]+"
 
-// NewEnviron returns a new blank Environ instance
-func NewEnviron() *Environ {
+// New returns a new blank Environ instance
+func New() *Environ {
 	return &Environ{m: make(map[string]string), re: regexp.MustCompile(regex)}
 }
 
-// NewEnvironFromEnv returns a new Environ instance populated from os.Environ
-func NewEnvironFromEnv() *Environ {
+// NewFromEnv returns a new Environ instance populated from os.Environ
+func NewFromEnv() *Environ {
 	e := make(map[string]string)
 	for _, item := range os.Environ() {
 		bits := strings.SplitN(item, "=", 2)

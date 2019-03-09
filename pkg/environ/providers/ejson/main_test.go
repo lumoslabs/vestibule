@@ -57,7 +57,7 @@ func TestAddToEnviron(t *testing.T) {
 	}
 
 	for _, tt := range tests {
-		e := environ.NewEnviron()
+		e := environ.New()
 
 		files := make([]string, 0, len(tt.docs))
 		for _, data := range tt.docs {
@@ -74,7 +74,7 @@ func TestAddToEnviron(t *testing.T) {
 		assert.NoErrorf(t, er, tt.name)
 		tt.errorFunc(t, ej.AddToEnviron(e), tt.name)
 
-		ea := environ.NewEnviron()
+		ea := environ.New()
 		ea.SafeMerge(tt.keyvals)
 		assert.Equalf(t, e.String(), ea.String(), tt.name)
 
