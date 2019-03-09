@@ -9,6 +9,8 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/spf13/afero"
+
 	"github.com/lumoslabs/vestibule/pkg/environ"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -147,6 +149,7 @@ func TestAddToEnviron(t *testing.T) {
 		{"kv/foo/bar@2", "my-role"},
 	}
 
+	fs = afero.NewMemMapFs()
 	ts := testServer()
 	defer ts.Close()
 
@@ -167,7 +170,7 @@ func TestAddToEnviron(t *testing.T) {
 		e := environ.New()
 		c.AddToEnviron(e)
 		if test.iam != "" {
-			assert.Equal(t, 3, e.Len())
+			assert.Equal(t, 4, e.Len())
 		} else {
 			assert.Equal(t, 1, e.Len())
 		}
@@ -180,6 +183,9 @@ func TestAddToEnviron(t *testing.T) {
 			ak, ok := e.Load("AWS_ACCESS_KEY_ID")
 			assert.True(t, ok)
 			assert.Equal(t, "1234", ak)
+
+			content, _ := afero.ReadFile(fs, awsCredentialsFilePath)
+			assert.Equal(t, fmt.Sprintf(awsCredentialsFileFmt, "1234", "1234"), string(content))
 		}
 
 		os.Unsetenv("VAULT_KV_KEYS")

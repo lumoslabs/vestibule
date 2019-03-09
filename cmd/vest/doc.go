@@ -52,7 +52,9 @@ Usage: {{ .Self }} user-spec command [args]
       App role name to use with the kubernetes authentication method.
 
     VAULT_IAM_ROLE
-      IAM role to request from vault.
+      IAM role to request from vault. If returns credentials, the access key and secret key will be injected into
+      the process environment using the standard environment variables and a credentials file will be written to
+      the path from AWS_SHARED_CREDENTIALS_FILE (by default "/var/aws/credentials")
 
     VAULT_AUTH_PATH
       Authentication path for vault authentication - e.g. okta/login/:user. Overrides VAULT_AUTH_METHOD if set.
