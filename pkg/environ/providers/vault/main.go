@@ -174,11 +174,7 @@ func (c *Client) AddToEnviron(e *environ.Environ) error {
 				f.WriteString(fmt.Sprintf(awsCredentialsFileFmt, accessKey, secretKey))
 				f.Close()
 				creds["AWS_SHARED_CREDENTIALS_FILE"] = c.AwsCredFile
-			} else {
-				fmt.Printf("open: %v\n", er)
 			}
-		} else {
-			fmt.Printf("mkdir: %v\n", er)
 		}
 
 		e.SafeMerge(creds)
