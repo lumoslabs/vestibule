@@ -41,27 +41,45 @@ func NewFromEnv() *Environ {
 // Merge takes a map[string]string and adds it to this Environ, overwriting any conflicting keys.
 func (e *Environ) Merge(m map[string]string) {
 	e.Lock()
+	defer e.Unlock()
+
 	for k, v := range m {
 		e.m[k] = v
 	}
-	e.Unlock()
 }
 
 // SafeMerge takes a map[string]string and adds it to this Environ without overwriting keys
 func (e *Environ) SafeMerge(m map[string]string) {
 	e.Lock()
+	defer e.Unlock()
+
 	for k, v := range m {
 		if _, ok := e.m[k]; !ok {
 			e.m[k] = v
 		}
 	}
-	e.Unlock()
+}
+
+// SafeAppend takes a slice in the form of os.Environ() - '=' delimited - and appends it to Environ without overwriting keys.
+func (e *Environ) SafeAppend(s []string) {
+	e.Lock()
+	defer e.Unlock()
+
+	for _, item := range s {
+		bits := strings.SplitN(item, "=", 2)
+		if len(bits) == 2 {
+			if _, ok := e.m[bits[0]]; !ok {
+				e.m[bits[0]] = bits[1]
+			}
+		}
+	}
 }
 
 // Set takes a key / value pair and adds it to this Environ
 func (e *Environ) Set(k, v string) {
 	e.Lock()
 	defer e.Unlock()
+
 	e.m[k] = v
 }
 
@@ -69,6 +87,7 @@ func (e *Environ) Set(k, v string) {
 func (e *Environ) Load(k string) (v string, ok bool) {
 	e.RLock()
 	defer e.RUnlock()
+
 	v, ok = e.m[k]
 	return
 }
@@ -87,6 +106,7 @@ func (e *Environ) Delete(key string) (v string) {
 func (e *Environ) Len() (l int) {
 	e.RLock()
 	defer e.RUnlock()
+
 	l = len(e.m)
 	return
 }
@@ -101,6 +121,7 @@ func (e *Environ) Slice() []string {
 		s = append(s, key+"="+v)
 	}
 	e.RUnlock()
+
 	sort.Strings(s)
 	return s
 }
@@ -108,12 +129,14 @@ func (e *Environ) Slice() []string {
 // Map returns a copy of the underlying map[string]string
 func (e *Environ) Map() map[string]string {
 	e.RLock()
+	defer e.RUnlock()
+
 	dup := make(map[string]string, len(e.m))
 	for k, v := range e.m {
 		key := strings.ToUpper(e.re.ReplaceAllString(k, "_"))
 		dup[key] = v
 	}
-	e.RUnlock()
+
 	return dup
 }
 
@@ -137,6 +160,8 @@ func (e *Environ) SetMarshaller(m string) {
 // Write writes the marshalled byte slice of the underlying map to the given io.Writer
 func (e *Environ) Write(w io.Writer) error {
 	e.RLock()
+	defer e.RUnlock()
+
 	out, er := e.marshaller(e.Map())
 	if er != nil {
 		return er

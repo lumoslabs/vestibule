@@ -50,7 +50,7 @@ func main() {
 	environ.RegisterProvider(sops.Name, sops.New)
 
 	var (
-		e  = environ.NewFromEnv()
+		e  = environ.New()
 		c  = new(config)
 		wg sync.WaitGroup
 	)
@@ -97,6 +97,8 @@ func main() {
 			log.Fatalf("error: %v", er)
 		}
 
+		fmt.Println("SAFEMERGE")
+		e.SafeAppend(os.Environ())
 		if er = syscall.Exec(name, os.Args[2:], e.Slice()); er != nil {
 			log.Fatalf("error: exec failed: %v", er)
 		}
@@ -110,6 +112,7 @@ func main() {
 			}
 		}
 
+		e.SafeAppend(os.Environ())
 		if er = syscall.Exec(name, os.Args[1:], e.Slice()); er != nil {
 			log.Fatalf("error: exec failed: %v", er)
 		}
