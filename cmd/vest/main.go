@@ -77,6 +77,7 @@ func main() {
 		if file, er := os.Create(c.OutFile); er == nil {
 			e.SetMarshaller(c.OutFmt)
 			e.Write(file)
+			file.Close()
 		}
 	}
 
