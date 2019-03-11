@@ -97,7 +97,6 @@ func main() {
 			log.Fatalf("error: %v", er)
 		}
 
-		fmt.Println("SAFEMERGE")
 		e.SafeAppend(os.Environ())
 		if er = syscall.Exec(name, os.Args[2:], e.Slice()); er != nil {
 			log.Fatalf("error: exec failed: %v", er)
