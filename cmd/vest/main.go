@@ -22,6 +22,8 @@ import (
 type config struct {
 	User      string   `env:"VEST_USER"`
 	Providers []string `env:"VEST_PROVIDERS" envSeparator:"," envDefault:"vault"`
+	OutFile   string   `env:"VEST_OUTPUT_FILE"`
+	OutFmt    string   `env:"VEST_OUTPUT_FORMAT" envDefault:"json"`
 }
 
 func init() {
@@ -70,6 +72,13 @@ func main() {
 		}()
 	}
 	wg.Wait()
+
+	if c.OutFile != "" {
+		if file, er := os.Create(c.OutFile); er == nil {
+			e.SetMarshaller(c.OutFmt)
+			e.Write(file)
+		}
+	}
 
 	if name, er := exec.LookPath(os.Args[1]); er != nil {
 		os.Unsetenv("HOME")

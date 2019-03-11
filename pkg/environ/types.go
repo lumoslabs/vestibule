@@ -8,8 +8,9 @@ import (
 // Environ is a concurrency safe-ish map[string]string for holding environment variables
 type Environ struct {
 	sync.RWMutex
-	m  map[string]string
-	re *regexp.Regexp
+	m          map[string]string
+	re         *regexp.Regexp
+	marshaller func(in interface{}) ([]byte, error)
 }
 
 // Provider is a secrets provider able to inject variables into the environment

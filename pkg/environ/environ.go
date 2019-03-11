@@ -1,11 +1,17 @@
 package environ
 
 import (
+	"encoding/json"
 	"fmt"
+	"io"
 	"os"
 	"regexp"
 	"sort"
 	"strings"
+
+	"gopkg.in/yaml.v2"
+
+	"github.com/joho/godotenv"
 )
 
 // 1 or more non-word characters
@@ -13,7 +19,11 @@ const regex = "[^0-9A-Za-z_]+"
 
 // New returns a new blank Environ instance
 func New() *Environ {
-	return &Environ{m: make(map[string]string), re: regexp.MustCompile(regex)}
+	return &Environ{
+		m:          make(map[string]string),
+		re:         regexp.MustCompile(regex),
+		marshaller: json.Marshal,
+	}
 }
 
 // NewFromEnv returns a new Environ instance populated from os.Environ
@@ -95,7 +105,53 @@ func (e *Environ) Slice() []string {
 	return s
 }
 
+// Map returns a copy of the underlying map[string]string
+func (e *Environ) Map() map[string]string {
+	e.RLock()
+	dup := make(map[string]string, len(e.m))
+	for k, v := range e.m {
+		key := strings.ToUpper(e.re.ReplaceAllString(k, "_"))
+		dup[key] = v
+	}
+	e.RUnlock()
+	return dup
+}
+
 // String returns a stringified representation of this Environ
 func (e *Environ) String() string {
 	return fmt.Sprintf("%#q", e.Slice())
+}
+
+// SetMarshaller sets the marshalling function for the Environ object.
+func (e *Environ) SetMarshaller(m string) {
+	switch strings.ToLower(m) {
+	case "yaml", "yml":
+		e.marshaller = yaml.Marshal
+	case "env", "dotenv":
+		e.marshaller = marshalDotEnv
+	default:
+		e.marshaller = json.Marshal
+	}
+}
+
+// Write writes the marshalled byte slice of the underlying map to the given io.Writer
+func (e *Environ) Write(w io.Writer) error {
+	e.RLock()
+	out, er := e.marshaller(e.Map())
+	if er != nil {
+		return er
+	}
+
+	_, er = w.Write(out)
+	return er
+}
+
+func marshalDotEnv(in interface{}) ([]byte, error) {
+	inTyped, ok := in.(map[string]string)
+	if !ok {
+		return []byte(nil), fmt.Errorf("Invalid input type: %T", inTyped)
+	}
+
+	out, er := godotenv.Marshal(inTyped)
+	return []byte(out), er
 }
