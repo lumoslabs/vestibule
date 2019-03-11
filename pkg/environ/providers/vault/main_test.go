@@ -117,7 +117,7 @@ func TestKeyParser(t *testing.T) {
 	}{
 		{"kv/foo/bar", 1, false},
 		{"/kv/foo/bar:kv/bif/baz", 2, false},
-		{"/kv/foo/bar@1:kv/bif/baz@2", 2, true},
+		{"/kv//foo/bar@1:kv/bif/baz@2", 2, true},
 	}
 
 	for _, test := range tt {

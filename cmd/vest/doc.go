@@ -56,6 +56,9 @@ Usage: {{ .Self }} user-spec command [args]
       the process environment using the standard environment variables and a credentials file will be written to
       the path from AWS_SHARED_CREDENTIALS_FILE (by default "/var/aws/credentials")
 
+    VAULT_AWS_PATH
+      Mountpoint for the vault AWS secret engine. Defaults to "aws".
+
     VAULT_AUTH_PATH
       Authentication path for vault authentication - e.g. okta/login/:user. Overrides VAULT_AUTH_METHOD if set.
     

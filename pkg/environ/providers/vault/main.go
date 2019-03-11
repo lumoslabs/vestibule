@@ -103,8 +103,13 @@ func (c *Client) AddToEnviron(e *environ.Environ) error {
 			continue
 		}
 
-		if bits[0] == "" {
-			bits = bits[1:]
+		tail := len(bits) - 1
+		for i := 0; i <= tail; i++ {
+			if bits[i] == "" {
+				bits = append(bits[:i], bits[i+1:tail+1]...)
+				tail--
+				i--
+			}
 		}
 
 		// Add 'data' as the second path element if it does not exist
@@ -149,7 +154,7 @@ func (c *Client) AddToEnviron(e *environ.Environ) error {
 	}
 
 	if c.IamRole != "" {
-		route := "aws/sts/" + c.IamRole
+		route := strings.TrimSpace(strings.Trim(c.AwsPath, "/")) + "/sts/" + strings.TrimSpace(c.IamRole)
 		iam, er := c.Logical().Read(route)
 		if er != nil {
 			return er
