@@ -4,14 +4,21 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
+	"path/filepath"
 	"reflect"
 	"strconv"
 	"strings"
+
+	"github.com/spf13/afero"
 
 	"github.com/caarlos0/env"
 	"github.com/hashicorp/vault/api"
 	"github.com/lumoslabs/vestibule/pkg/environ"
 	"k8s.io/client-go/rest"
+)
+
+var (
+	fs afero.Fs = afero.NewOsFs()
 )
 
 const (
@@ -26,6 +33,8 @@ const (
 
 	// KeysEnvVar is the environment variable holding the keys to lookup
 	KeysEnvVar = "VAULT_KEYS"
+
+	awsCredentialsFileFmt = "[default]\naws_access_key_id=%s\naws_secret_access_key=%s\n"
 )
 
 // New returns a Client as an environ.Provider or an error if configuring failed. If running in a Kubernetes
@@ -94,8 +103,13 @@ func (c *Client) AddToEnviron(e *environ.Environ) error {
 			continue
 		}
 
-		if bits[0] == "" {
-			bits = bits[1:]
+		tail := len(bits) - 1
+		for i := 0; i <= tail; i++ {
+			if bits[i] == "" {
+				bits = append(bits[:i], bits[i+1:tail+1]...)
+				tail--
+				i--
+			}
 		}
 
 		// Add 'data' as the second path element if it does not exist
@@ -135,7 +149,40 @@ func (c *Client) AddToEnviron(e *environ.Environ) error {
 				env[k] = s
 			}
 		}
+
 		e.SafeMerge(env)
+	}
+
+	if c.IamRole != "" {
+		route := strings.TrimSpace(strings.Trim(c.AwsPath, "/")) + "/sts/" + strings.TrimSpace(c.IamRole)
+		iam, er := c.Logical().Read(route)
+		if er != nil {
+			return er
+		}
+
+		accessKey, ok := iam.Data["access_key"].(string)
+		if !ok {
+			return fmt.Errorf("Unexpected response from Vault. route=%s", route)
+		}
+		secretKey, ok := iam.Data["secret_key"].(string)
+		if !ok {
+			return fmt.Errorf("Unexpected response from Vault. route=%s", route)
+		}
+
+		creds := map[string]string{
+			"AWS_ACCESS_KEY_ID":     accessKey,
+			"AWS_SECRET_ACCESS_KEY": secretKey,
+		}
+
+		if er := fs.MkdirAll(filepath.Dir(c.AwsCredFile), 0755); er == nil {
+			if f, er := fs.Create(c.AwsCredFile); er == nil {
+				f.WriteString(fmt.Sprintf(awsCredentialsFileFmt, accessKey, secretKey))
+				f.Close()
+				creds["AWS_SHARED_CREDENTIALS_FILE"] = c.AwsCredFile
+			}
+		}
+
+		e.SafeMerge(creds)
 	}
 	return nil
 }
