@@ -33,6 +33,12 @@ Usage: vest user-spec command [args]
     VEST_PROVIDERS=provider1,...
       Comma separated list of enabled providers. By default only vault is enabled.
 
+    VEST_OUTPUT_FILE=/path/to/file
+      If set, will write gathered secrets from enabled providers to the specified file. On error, does nothing.
+
+    VEST_OUTPUT_FORMAT=<json|yaml|yml|env|dotenv|toml>
+      The format of the output file. Default is json.
+
     SOPS_FILES=/path/to/file[;/path/to/output[;mode]]:...
       If SOPS_FILES is set, will iterate over each file (colon separated), attempting to decrypt with Sops.
       The decrypted cleartext file can be optionally written out to a separate location (with optional filemode)

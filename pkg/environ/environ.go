@@ -1,6 +1,7 @@
 package environ
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -8,6 +9,8 @@ import (
 	"regexp"
 	"sort"
 	"strings"
+
+	"github.com/BurntSushi/toml"
 
 	"gopkg.in/yaml.v2"
 
@@ -152,6 +155,8 @@ func (e *Environ) SetMarshaller(m string) {
 		e.marshaller = yaml.Marshal
 	case "env", "dotenv":
 		e.marshaller = marshalDotEnv
+	case "toml":
+		e.marshaller = marshalToml
 	default:
 		e.marshaller = json.Marshal
 	}
@@ -179,4 +184,12 @@ func marshalDotEnv(in interface{}) ([]byte, error) {
 
 	out, er := godotenv.Marshal(inTyped)
 	return []byte(out), er
+}
+
+func marshalToml(in interface{}) ([]byte, error) {
+	buf := new(bytes.Buffer)
+	if er := toml.NewEncoder(buf).Encode(in); er != nil {
+		return []byte(nil), er
+	}
+	return buf.Bytes(), nil
 }
