@@ -17,6 +17,8 @@ github.com/Azure/go-autorest/autorest/azure/auth
 github.com/Azure/go-autorest/autorest/adal
 github.com/Azure/go-autorest/logger
 github.com/Azure/go-autorest/autorest/azure/cli
+# github.com/BurntSushi/toml v0.3.1
+github.com/BurntSushi/toml
 # github.com/Shopify/ejson v1.2.1
 github.com/Shopify/ejson
 github.com/Shopify/ejson/json

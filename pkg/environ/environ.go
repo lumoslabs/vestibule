@@ -38,7 +38,11 @@ func NewFromEnv() *Environ {
 			e[bits[0]] = bits[1]
 		}
 	}
-	return &Environ{m: e, re: regexp.MustCompile(regex)}
+	return &Environ{
+		m:          e,
+		re:         regexp.MustCompile(regex),
+		marshaller: json.Marshal,
+	}
 }
 
 // Merge takes a map[string]string and adds it to this Environ, overwriting any conflicting keys.
