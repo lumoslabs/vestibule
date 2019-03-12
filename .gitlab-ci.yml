@@ -25,10 +25,7 @@ test:memory:
 release:test:
   extends: .base
   stage: release
-  services:
-    - docker:dind
   variables:
-    DOCKER_HOST: tcp://127.0.0.1:2375/
     DOCKER_DRIVER: overlay2
   script:
     - echo "$QUAY_PASSWORD" | docker login --username="$QUAY_USERNAME" --password-stdin quay.io
@@ -40,10 +37,7 @@ release:
   stage: release
   only:
     - tags
-  services:
-    - docker:dind
   variables:
-    DOCKER_HOST: tcp://127.0.0.1:2375/
     DOCKER_DRIVER: overlay2
   script:
     - echo "$QUAY_PASSWORD" | docker login --username="$QUAY_USERNAME" --password-stdin quay.io
