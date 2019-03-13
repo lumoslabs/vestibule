@@ -195,7 +195,7 @@ func (c *Client) AddToEnviron(e *environ.Environ) error {
 
 			e.SafeMerge(creds)
 		} else {
-			log.Debugf("Failed to get aws creds from vault. path=%s creds=%#v err=%v", path, creds, er)
+			log.Debugf("Failed to get aws creds from vault. path=%s err=%v", path, er)
 		}
 	}
 	return nil
