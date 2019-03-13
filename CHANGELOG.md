@@ -33,3 +33,9 @@ _Ordered oldest -> newest_
    *  Support actually retrieving a session token from Vault
 *  Vault Provider: change kv env var from `VAULT_KEYS` to `VAULT_KV_KEYS`
 *  Vault Provider: clean up kv paths
+
+## v0.2.0
+
+* Vault Provider: add request for aws credentials from vault
+* Add feature to have secrets written to a file
+* Add logging
