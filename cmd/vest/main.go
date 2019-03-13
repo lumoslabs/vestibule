@@ -13,6 +13,7 @@ import (
 	"github.com/lumoslabs/vestibule/pkg/environ/providers/ejson"
 	"github.com/lumoslabs/vestibule/pkg/environ/providers/sops"
 	"github.com/lumoslabs/vestibule/pkg/environ/providers/vault"
+	"github.com/opencontainers/runc/libcontainer/user"
 
 	"github.com/caarlos0/env"
 
@@ -22,6 +23,8 @@ import (
 type config struct {
 	User      string   `env:"VEST_USER"`
 	Providers []string `env:"VEST_PROVIDERS" envSeparator:"," envDefault:"vault"`
+	OutFile   string   `env:"VEST_OUTPUT_FILE" envExpand:"true"`
+	OutFmt    string   `env:"VEST_OUTPUT_FORMAT" envDefault:"json"`
 }
 
 func init() {
@@ -48,7 +51,7 @@ func main() {
 	environ.RegisterProvider(sops.Name, sops.New)
 
 	var (
-		e  = environ.NewFromEnv()
+		e  = environ.New()
 		c  = new(config)
 		wg sync.WaitGroup
 	)
@@ -71,16 +74,26 @@ func main() {
 	}
 	wg.Wait()
 
+	if c.OutFile != "" {
+		if file, er := os.Create(c.OutFile); er == nil {
+			e.SetMarshaller(c.OutFmt)
+			e.Write(file)
+			file.Close()
+		}
+	}
+
 	if name, er := exec.LookPath(os.Args[1]); er != nil {
 		os.Unsetenv("HOME")
 		e.Delete("HOME")
 
-		usr := os.Args[1]
+		u := os.Args[1]
 		if c.User != "" {
-			usr = c.User
+			u = c.User
 		}
-		if er := SetupUser(usr, e); er != nil {
-			log.Fatalf("error: failed switching to %q: %v", usr, er)
+
+		usr, er := getUser(u)
+		if er != nil {
+			log.Fatalf("error: unable to find %q: %v", u, er)
 		}
 
 		name, er = exec.LookPath(os.Args[2])
@@ -88,6 +101,15 @@ func main() {
 			log.Fatalf("error: %v", er)
 		}
 
+		if c.OutFile != "" {
+			os.Chown(c.OutFile, usr.Uid, usr.Gid)
+		}
+
+		if er := SetupUser(usr); er != nil {
+			log.Fatalf("error: failed switching to %q: %v", u, er)
+		}
+
+		e.SafeAppend(os.Environ())
 		if er = syscall.Exec(name, os.Args[2:], e.Slice()); er != nil {
 			log.Fatalf("error: exec failed: %v", er)
 		}
@@ -96,13 +118,41 @@ func main() {
 			os.Unsetenv("HOME")
 			e.Delete("HOME")
 
-			if er := SetupUser(c.User, e); er != nil {
+			usr, er := getUser(c.User)
+			if er != nil {
+				log.Fatalf("error: unable to find %q: %v", c.User, er)
+			}
+
+			if c.OutFile != "" {
+				os.Chown(c.OutFile, usr.Uid, usr.Gid)
+			}
+
+			if er := SetupUser(usr); er != nil {
 				log.Fatalf("error: failed switching to %q: %v", c.User, er)
 			}
 		}
 
+		e.SafeAppend(os.Environ())
 		if er = syscall.Exec(name, os.Args[1:], e.Slice()); er != nil {
 			log.Fatalf("error: exec failed: %v", er)
 		}
 	}
+}
+
+func getUser(usr string) (*user.ExecUser, error) {
+	defaultExecUser := user.ExecUser{
+		Uid:  syscall.Getuid(),
+		Gid:  syscall.Getgid(),
+		Home: "/",
+	}
+	passwdPath, err := user.GetPasswdPath()
+	if err != nil {
+		return nil, err
+	}
+	groupPath, err := user.GetGroupPath()
+	if err != nil {
+		return nil, err
+	}
+
+	return user.GetExecUserPath(usr, &defaultExecUser, passwdPath, groupPath)
 }

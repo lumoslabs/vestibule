@@ -18,7 +18,12 @@ import (
 )
 
 var (
-	fs afero.Fs = afero.NewOsFs()
+	fs = afero.NewOsFs()
+
+	sensitiveEnvVars = []string{
+		"VAULT_KV_KEYS",
+		"VAULT_AUTH_DATA",
+	}
 )
 
 const (
@@ -31,16 +36,17 @@ const (
 	// VaultKeySeparator is the separator between key and version in KeysEnvVar
 	VaultKeySeparator = "@"
 
-	// KeysEnvVar is the environment variable holding the keys to lookup
-	KeysEnvVar = "VAULT_KEYS"
-
 	awsCredentialsFileFmt = "[default]\naws_access_key_id=%s\naws_secret_access_key=%s\n"
 )
 
 // New returns a Client as an environ.Provider or an error if configuring failed. If running in a Kubernetes
 // cluster and not provided a token, will use the service account token.
 func New() (environ.Provider, error) {
-	defer func() { os.Unsetenv(KeysEnvVar) }()
+	defer func() {
+		for _, ev := range sensitiveEnvVars {
+			os.Unsetenv(ev)
+		}
+	}()
 
 	vc, er := api.NewClient(api.DefaultConfig())
 	if er != nil {
@@ -96,7 +102,9 @@ func (c *Client) setVaultToken() error {
 // AddToEnviron iterates through the given []VaultKeys, decoding the data returned from each key into a map[string]string
 // and merging it into the environ.Environ
 func (c *Client) AddToEnviron(e *environ.Environ) error {
-	e.Delete(KeysEnvVar)
+	for _, ev := range sensitiveEnvVars {
+		e.Delete(ev)
+	}
 	for _, key := range c.Keys {
 		bits := strings.Split(key.Path, "/")
 		if len(bits) < 2 {
