@@ -175,6 +175,7 @@ func (c *Client) AddToEnviron(e *environ.Environ) error {
 	}
 
 	if c.IamRole != "" {
+		panic("test")
 		// attempt to get aws creds from vault
 		// only looks for sts roles
 		path := strings.TrimSpace(strings.Trim(c.AwsPath, "/")) + "/sts/" + strings.TrimSpace(c.IamRole)
@@ -253,10 +254,11 @@ func vaultKeyParser(s string) (interface{}, error) {
 }
 
 func getKubernetesSAToken() ([]byte, error) {
-	if _, er := os.Stat(kubernetesTokenFilePath); len(os.Getenv("KUBERNETES_SERVICE_HOST")) == 0 &&
-		len(os.Getenv("KUBERNETES_SERVICE_PORT")) == 0 &&
-		er != nil {
-		return []byte(nil), er
+	if len(os.Getenv("KUBERNETES_SERVICE_HOST")) == 0 && len(os.Getenv("KUBERNETES_SERVICE_PORT")) == 0 {
+		return []byte(nil), errors.New("not running in kubernetes")
+	}
+	if _, er := os.Stat(kubernetesTokenFilePath); er != nil {
+		return []byte(nil), errors.New("can't find service account token file")
 	}
 
 	return ioutil.ReadFile(kubernetesTokenFilePath)

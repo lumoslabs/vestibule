@@ -2,8 +2,8 @@ builds:
   - env: ["CGO_ENABLED=0"]
     main: ./cmd/vest
     binary: vest
-    asmflags: ["all=-trimpath={{.Env.GOPATH}}"]
-    gcflags: ["all=-trimpath={{.Env.GOPATH}}"]
+    asmflags: ["all=-trimpath={{.Env.PWD}}"]
+    gcflags: ["all=-trimpath={{.Env.PWD}}"]
 archive:
   files: ["none*"]
   replacements:
