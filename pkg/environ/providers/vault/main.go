@@ -111,6 +111,7 @@ func (c *Client) AddToEnviron(e *environ.Environ) error {
 	for _, key := range c.Keys {
 		bits := strings.Split(key.Path, "/")
 		if len(bits) < 2 {
+			log.Debugf("Ignoring invalid vault KV key. key=%s", key.Path)
 			continue
 		}
 
@@ -135,13 +136,14 @@ func (c *Client) AddToEnviron(e *environ.Environ) error {
 		if key.Version != nil {
 			d["version"] = []string{strconv.Itoa(*(key.Version))}
 		}
+		log.Debugf("Fetching KVv2 secret from vault. key=%s data=%#v", p, d)
 		s, er := c.Logical().ReadWithData(p, d)
 		if er != nil || s == nil {
-			log.Debugf("Failed to get kv2 secret from vault, trying kv1. key=%s err=%s", p, er.Error())
+			log.Debugf("Failed to get KVv2 secret from vault, trying KVv1. key=%s err=%v", p, er)
 			p = strings.Join(append(bits[:1], bits[2:]...), "/")
-			s, er := c.Logical().ReadWithData(p, d)
+			s, er := c.Logical().Read(p)
 			if er != nil || s == nil {
-				log.Infof("Failed to get kv secret from vault. key=%s err=%s", p, er.Error())
+				log.Debugf("Failed to get KVv1 secret from vault. key=%s err=%v", p, er)
 				continue
 			}
 		}
