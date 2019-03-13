@@ -215,11 +215,11 @@ func (c *Client) getAwsCreds(path string) (map[string]string, error) {
 
 	accessKey, ok := iam.Data["access_key"].(string)
 	if !ok {
-		return creds, nil
+		return creds, errors.New("vault did not return access key")
 	}
 	secretKey, ok := iam.Data["secret_key"].(string)
 	if !ok {
-		return creds, nil
+		return creds, errors.New("vault did not return secret key")
 	}
 
 	creds["AWS_ACCESS_KEY_ID"] = accessKey
