@@ -175,7 +175,6 @@ func (c *Client) AddToEnviron(e *environ.Environ) error {
 	}
 
 	if c.IamRole != "" {
-		panic("test")
 		// attempt to get aws creds from vault
 		// only looks for sts roles
 		path := strings.TrimSpace(strings.Trim(c.AwsPath, "/")) + "/sts/" + strings.TrimSpace(c.IamRole)
