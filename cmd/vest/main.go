@@ -80,7 +80,7 @@ func main() {
 		go func() {
 			defer wg.Done()
 			if er := p.AddToEnviron(e); er != nil {
-				log.Infof("Failed add secrets to Environ. provider=%s msg=%s", name, er.Error())
+				log.Infof("Failed to add secrets to Environ. provider=%s msg=%s", name, er.Error())
 			}
 		}()
 	}
