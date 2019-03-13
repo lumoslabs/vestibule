@@ -8,6 +8,7 @@ var providers map[string]ProviderFactory
 
 // RegisterProvider adds the named Provider's factory function to the map of known Providers
 func RegisterProvider(name string, fn ProviderFactory) {
+	log.Debugf("Registering provider. name=%s", name)
 	if providers == nil {
 		providers = make(map[string]ProviderFactory)
 	}

@@ -18,7 +18,8 @@ import (
 )
 
 var (
-	fs = afero.NewOsFs()
+	fs  = afero.NewOsFs()
+	log = environ.GetLogger()
 
 	sensitiveEnvVars = []string{
 		"VAULT_KV_KEYS",
@@ -48,6 +49,7 @@ func New() (environ.Provider, error) {
 		}
 	}()
 
+	log.Debugf("Creating vault api client. addr=%v", os.Getenv("VAULT_ADDR"))
 	vc, er := api.NewClient(api.DefaultConfig())
 	if er != nil {
 		return nil, er
@@ -90,6 +92,7 @@ func (c *Client) setVaultToken() error {
 	}
 
 	c.SetToken("token")
+	log.Debugf("Requesting session token from vault. path=%s data=%#v", path, data)
 	auth, er := c.Logical().Write(path, data)
 	if er != nil {
 		return er
@@ -108,6 +111,7 @@ func (c *Client) AddToEnviron(e *environ.Environ) error {
 	for _, key := range c.Keys {
 		bits := strings.Split(key.Path, "/")
 		if len(bits) < 2 {
+			log.Debugf("Ignoring invalid vault KV key. key=%s", key.Path)
 			continue
 		}
 
@@ -132,9 +136,16 @@ func (c *Client) AddToEnviron(e *environ.Environ) error {
 		if key.Version != nil {
 			d["version"] = []string{strconv.Itoa(*(key.Version))}
 		}
+		log.Debugf("Fetching KVv2 secret from vault. key=%s data=%#v", p, d)
 		s, er := c.Logical().ReadWithData(p, d)
 		if er != nil || s == nil {
-			return er
+			log.Debugf("Failed to get KVv2 secret from vault, trying KVv1. key=%s err=%v", p, er)
+			p = strings.Join(append(bits[:1], bits[2:]...), "/")
+			s, er := c.Logical().Read(p)
+			if er != nil || s == nil {
+				log.Debugf("Failed to get KVv1 secret from vault. key=%s err=%v", p, er)
+				continue
+			}
 		}
 
 		var data map[string]interface{}
@@ -162,19 +173,20 @@ func (c *Client) AddToEnviron(e *environ.Environ) error {
 	}
 
 	if c.IamRole != "" {
-		route := strings.TrimSpace(strings.Trim(c.AwsPath, "/")) + "/sts/" + strings.TrimSpace(c.IamRole)
-		iam, er := c.Logical().Read(route)
+		path := strings.TrimSpace(strings.Trim(c.AwsPath, "/")) + "/sts/" + strings.TrimSpace(c.IamRole)
+		log.Debugf("Requesting aws credentials from vault. path=%s", path)
+		iam, er := c.Logical().Read(path)
 		if er != nil {
 			return er
 		}
 
 		accessKey, ok := iam.Data["access_key"].(string)
 		if !ok {
-			return fmt.Errorf("Unexpected response from Vault. route=%s", route)
+			return fmt.Errorf("Unexpected response from Vault. path=%s", path)
 		}
 		secretKey, ok := iam.Data["secret_key"].(string)
 		if !ok {
-			return fmt.Errorf("Unexpected response from Vault. route=%s", route)
+			return fmt.Errorf("Unexpected response from Vault. path=%s", path)
 		}
 
 		creds := map[string]string{
@@ -187,6 +199,8 @@ func (c *Client) AddToEnviron(e *environ.Environ) error {
 				f.WriteString(fmt.Sprintf(awsCredentialsFileFmt, accessKey, secretKey))
 				f.Close()
 				creds["AWS_SHARED_CREDENTIALS_FILE"] = c.AwsCredFile
+			} else {
+				log.Debugf("Failed writing shared aws credentials file. file=%s error=%v", c.AwsCredFile, er)
 			}
 		}
 

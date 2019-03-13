@@ -24,3 +24,10 @@ type ProviderFactory func() (Provider, error)
 type unregisteredProviderError struct {
 	provider string
 }
+
+type Logger interface {
+	Info(string)
+	Infof(string, ...interface{})
+	Debug(string)
+	Debugf(string, ...interface{})
+}
