@@ -200,7 +200,7 @@ func (c *Client) AddToEnviron(e *environ.Environ) error {
 				f.Close()
 				creds["AWS_SHARED_CREDENTIALS_FILE"] = c.AwsCredFile
 			} else {
-				log.Infof("Failed writing shared aws credentials file. file=%s error=%v", c.AwsCredFile, er)
+				log.Debugf("Failed writing shared aws credentials file. file=%s error=%v", c.AwsCredFile, er)
 			}
 		}
 
