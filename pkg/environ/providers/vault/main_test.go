@@ -51,6 +51,9 @@ const (
 
 func testServer() *httptest.Server {
 	return httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		// if testing.Verbose() {
+		// 	fmt.Printf("vault GET %s\n", r.RequestURI)
+		// }
 		switch {
 		default:
 			http.Error(w, `{"errors":[]}`, http.StatusNotFound)

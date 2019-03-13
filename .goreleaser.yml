@@ -1,7 +1,9 @@
 builds:
-- env: ["CGO_ENABLED=0"]
-  main: ./cmd/vest
-  binary: vest
+  - env: ["CGO_ENABLED=0"]
+    main: ./cmd/vest
+    binary: vest
+    asmflags: ["all=-trimpath={{.Env.PWD}}"]
+    gcflags: ["all=-trimpath={{.Env.PWD}}"]
 archive:
   files: ["none*"]
   replacements:
@@ -18,8 +20,8 @@ changelog:
   sort: asc
   filters:
     exclude:
-    - '^docs:'
-    - '^test:'
+      - "^docs:"
+      - "^test:"
 release:
   prerelease: true
 dockers:

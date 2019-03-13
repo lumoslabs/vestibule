@@ -2,7 +2,9 @@ package vault
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
+	"io/ioutil"
 	"os"
 	"path/filepath"
 	"reflect"
@@ -14,7 +16,6 @@ import (
 	"github.com/caarlos0/env"
 	"github.com/hashicorp/vault/api"
 	"github.com/lumoslabs/vestibule/pkg/environ"
-	"k8s.io/client-go/rest"
 )
 
 var (
@@ -37,7 +38,8 @@ const (
 	// VaultKeySeparator is the separator between key and version in KeysEnvVar
 	VaultKeySeparator = "@"
 
-	awsCredentialsFileFmt = "[default]\naws_access_key_id=%s\naws_secret_access_key=%s\n"
+	awsCredentialsFileFmt   = "[default]\naws_access_key_id=%s\naws_secret_access_key=%s\n"
+	kubernetesTokenFilePath = "/var/run/secrets/kubernetes.io/serviceaccount/token"
 )
 
 // New returns a Client as an environ.Provider or an error if configuring failed. If running in a Kubernetes
@@ -72,10 +74,10 @@ func New() (environ.Provider, error) {
 func (c *Client) setVaultToken() error {
 	var data map[string]interface{}
 
-	if kc, er := rest.InClusterConfig(); er == nil {
+	if token, er := getKubernetesSAToken(); er == nil && len(token) > 0 {
 		data = make(map[string]interface{})
 		data["role"] = c.AppRole
-		data["jwt"] = kc.BearerToken
+		data["jwt"] = string(token)
 	} else {
 		var d interface{}
 		if er := json.Unmarshal([]byte(c.AuthData), &d); er != nil {
@@ -173,40 +175,56 @@ func (c *Client) AddToEnviron(e *environ.Environ) error {
 	}
 
 	if c.IamRole != "" {
+		// attempt to get aws creds from vault
+		// only looks for sts roles
 		path := strings.TrimSpace(strings.Trim(c.AwsPath, "/")) + "/sts/" + strings.TrimSpace(c.IamRole)
-		log.Debugf("Requesting aws credentials from vault. path=%s", path)
-		iam, er := c.Logical().Read(path)
-		if er != nil {
-			return er
-		}
+		creds, er := c.getAwsCreds(path)
 
-		accessKey, ok := iam.Data["access_key"].(string)
-		if !ok {
-			return fmt.Errorf("Unexpected response from Vault. path=%s", path)
-		}
-		secretKey, ok := iam.Data["secret_key"].(string)
-		if !ok {
-			return fmt.Errorf("Unexpected response from Vault. path=%s", path)
-		}
+		if er != nil || len(creds) > 0 {
 
-		creds := map[string]string{
-			"AWS_ACCESS_KEY_ID":     accessKey,
-			"AWS_SECRET_ACCESS_KEY": secretKey,
-		}
-
-		if er := fs.MkdirAll(filepath.Dir(c.AwsCredFile), 0755); er == nil {
-			if f, er := fs.Create(c.AwsCredFile); er == nil {
-				f.WriteString(fmt.Sprintf(awsCredentialsFileFmt, accessKey, secretKey))
-				f.Close()
-				creds["AWS_SHARED_CREDENTIALS_FILE"] = c.AwsCredFile
-			} else {
-				log.Debugf("Failed writing shared aws credentials file. file=%s error=%v", c.AwsCredFile, er)
+			// attempt to write received creds to file
+			if er := fs.MkdirAll(filepath.Dir(c.AwsCredFile), 0755); er == nil {
+				if f, er := fs.Create(c.AwsCredFile); er == nil {
+					f.WriteString(fmt.Sprintf(awsCredentialsFileFmt, creds["AWS_ACCESS_KEY_ID"], creds["AWS_SECRET_ACCESS_KEY"]))
+					f.Close()
+					creds["AWS_SHARED_CREDENTIALS_FILE"] = c.AwsCredFile
+				} else {
+					log.Debugf("Failed writing shared aws credentials file. file=%s error=%v", c.AwsCredFile, er)
+				}
 			}
-		}
 
-		e.SafeMerge(creds)
+			e.SafeMerge(creds)
+		} else {
+			log.Debugf("Failed to get aws creds from vault. path=%s err=%v", path, er)
+		}
 	}
 	return nil
+}
+
+func (c *Client) getAwsCreds(path string) (map[string]string, error) {
+	creds := make(map[string]string)
+
+	log.Debugf("Requesting aws credentials from vault. path=%s", path)
+	iam, er := c.Logical().Read(path)
+	if er != nil {
+		return creds, er
+	}
+	if iam == nil {
+		return creds, errors.New("no data returned from vault")
+	}
+
+	accessKey, ok := iam.Data["access_key"].(string)
+	if !ok {
+		return creds, errors.New("vault did not return access key")
+	}
+	secretKey, ok := iam.Data["secret_key"].(string)
+	if !ok {
+		return creds, errors.New("vault did not return secret key")
+	}
+
+	creds["AWS_ACCESS_KEY_ID"] = accessKey
+	creds["AWS_SECRET_ACCESS_KEY"] = secretKey
+	return creds, nil
 }
 
 func vaultKeyParser(s string) (interface{}, error) {
@@ -232,4 +250,15 @@ func vaultKeyParser(s string) (interface{}, error) {
 	}
 
 	return keys, nil
+}
+
+func getKubernetesSAToken() ([]byte, error) {
+	if len(os.Getenv("KUBERNETES_SERVICE_HOST")) == 0 && len(os.Getenv("KUBERNETES_SERVICE_PORT")) == 0 {
+		return []byte(nil), errors.New("not running in kubernetes")
+	}
+	if _, er := os.Stat(kubernetesTokenFilePath); er != nil {
+		return []byte(nil), errors.New("can't find service account token file")
+	}
+
+	return ioutil.ReadFile(kubernetesTokenFilePath)
 }

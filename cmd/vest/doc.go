@@ -16,8 +16,14 @@ var (
 )
 
 func appVersion() string {
-	ver := []string{version, commit, date}
-	return fmt.Sprintf(`%s (%s on %s/%s; %s)`, strings.Join(ver, "/"), runtime.Version(), runtime.GOOS, runtime.GOARCH, runtime.Compiler)
+	return fmt.Sprintf(
+		`%s (%s on %s/%s; %s)`,
+		strings.Join([]string{version, commit, date}, "/"),
+		runtime.Version(),
+		runtime.GOOS,
+		runtime.GOARCH,
+		runtime.Compiler,
+	)
 }
 
 func usage() string {
