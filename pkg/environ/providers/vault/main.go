@@ -10,6 +10,7 @@ import (
 	"reflect"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/spf13/afero"
 
@@ -52,7 +53,11 @@ func New() (environ.Provider, error) {
 	}()
 
 	log.Debugf("Creating vault api client. addr=%v", os.Getenv("VAULT_ADDR"))
-	vc, er := api.NewClient(api.DefaultConfig())
+	vaultConfig := api.DefaultConfig()
+	vaultConfig.Timeout = time.Second * 10
+	vaultConfig.HttpClient.Timeout = time.Second * 10
+	vaultConfig.MaxRetries = 1
+	vc, er := api.NewClient(vaultConfig)
 	if er != nil {
 		return nil, er
 	}
