@@ -40,3 +40,8 @@ _Ordered oldest -> newest_
 * Vault Provider: get aws creds if requested
 * Add feature to have secrets written to a file
 * Add logging!
+
+## v0.2.1
+
+* Vault Provider: reduce http.Client timeout to 5 seconds
+* Vault Provider: reduce retries to 1
