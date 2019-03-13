@@ -37,5 +37,6 @@ _Ordered oldest -> newest_
 ## v0.2.0
 
 * Vault Provider: add request for aws credentials from vault
+* Vault Provider: get aws creds if requested
 * Add feature to have secrets written to a file
-* Add logging
+* Add logging!

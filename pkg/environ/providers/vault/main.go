@@ -174,39 +174,45 @@ func (c *Client) AddToEnviron(e *environ.Environ) error {
 
 	if c.IamRole != "" {
 		path := strings.TrimSpace(strings.Trim(c.AwsPath, "/")) + "/sts/" + strings.TrimSpace(c.IamRole)
-		log.Debugf("Requesting aws credentials from vault. path=%s", path)
-		iam, er := c.Logical().Read(path)
-		if er != nil {
-			return er
-		}
-
-		accessKey, ok := iam.Data["access_key"].(string)
-		if !ok {
-			return fmt.Errorf("Unexpected response from Vault. path=%s", path)
-		}
-		secretKey, ok := iam.Data["secret_key"].(string)
-		if !ok {
-			return fmt.Errorf("Unexpected response from Vault. path=%s", path)
-		}
-
-		creds := map[string]string{
-			"AWS_ACCESS_KEY_ID":     accessKey,
-			"AWS_SECRET_ACCESS_KEY": secretKey,
-		}
-
-		if er := fs.MkdirAll(filepath.Dir(c.AwsCredFile), 0755); er == nil {
-			if f, er := fs.Create(c.AwsCredFile); er == nil {
-				f.WriteString(fmt.Sprintf(awsCredentialsFileFmt, accessKey, secretKey))
-				f.Close()
-				creds["AWS_SHARED_CREDENTIALS_FILE"] = c.AwsCredFile
-			} else {
-				log.Debugf("Failed writing shared aws credentials file. file=%s error=%v", c.AwsCredFile, er)
+		if creds, er := c.getAwsCreds(path); er != nil && len(creds) != 0 {
+			if er := fs.MkdirAll(filepath.Dir(c.AwsCredFile), 0755); er == nil {
+				if f, er := fs.Create(c.AwsCredFile); er == nil {
+					f.WriteString(fmt.Sprintf(awsCredentialsFileFmt, creds["AWS_ACCESS_KEY_ID"], creds["AWS_SECRET_ACCESS_KEY"]))
+					f.Close()
+					creds["AWS_SHARED_CREDENTIALS_FILE"] = c.AwsCredFile
+				} else {
+					log.Debugf("Failed writing shared aws credentials file. file=%s error=%v", c.AwsCredFile, er)
+				}
 			}
+			e.SafeMerge(creds)
+		} else {
+			log.Debugf("Failed to get aws creds from vault. path=%s err=%v", path, er)
 		}
-
-		e.SafeMerge(creds)
 	}
 	return nil
+}
+
+func (c *Client) getAwsCreds(path string) (map[string]string, error) {
+	creds := make(map[string]string)
+
+	log.Debugf("Requesting aws credentials from vault. path=%s", path)
+	iam, er := c.Logical().Read(path)
+	if er != nil || iam == nil {
+		return creds, er
+	}
+
+	accessKey, ok := iam.Data["access_key"].(string)
+	if !ok {
+		return creds, nil
+	}
+	secretKey, ok := iam.Data["secret_key"].(string)
+	if !ok {
+		return creds, nil
+	}
+
+	creds["AWS_ACCESS_KEY_ID"] = accessKey
+	creds["AWS_SECRET_ACCESS_KEY"] = secretKey
+	return creds, nil
 }
 
 func vaultKeyParser(s string) (interface{}, error) {

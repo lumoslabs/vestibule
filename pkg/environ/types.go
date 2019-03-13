@@ -25,6 +25,7 @@ type unregisteredProviderError struct {
 	provider string
 }
 
+// Logger is a simple interface that handles Info and Debug logging
 type Logger interface {
 	Info(string)
 	Infof(string, ...interface{})

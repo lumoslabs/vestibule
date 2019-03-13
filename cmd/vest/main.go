@@ -87,6 +87,7 @@ func main() {
 	wg.Wait()
 
 	if c.OutFile != "" {
+		log.Debugf("Writing secrets to file. file=%s fmt=%s", c.OutFile, c.OutFmt)
 		if file, er := os.Create(c.OutFile); er == nil {
 			e.SetMarshaller(c.OutFmt)
 			e.Write(file)
