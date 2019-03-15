@@ -44,7 +44,8 @@ const (
   {
     "data": {
       "access_key": "1234",
-      "secret_key": "1234"
+			"secret_key": "1234",
+			"security_token": "1234"
     }
   }`
 )
@@ -173,7 +174,7 @@ func TestAddToEnviron(t *testing.T) {
 		e := environ.New()
 		c.AddToEnviron(e)
 		if test.iam != "" {
-			assert.Equal(t, 4, e.Len())
+			assert.Equal(t, 5, e.Len())
 		} else {
 			assert.Equal(t, 1, e.Len())
 		}
