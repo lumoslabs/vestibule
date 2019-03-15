@@ -7,9 +7,12 @@ import (
 )
 
 var (
-	VaultEmptyResponseErr      = errors.New("no data returned from vault")
-	VaultUnexpectedResponseErr = errors.New("unexpected response from vault")
-	NotInKubernetesErr         = errors.New("not running in kubernetes cluster")
+	// ErrVaultEmptyResponse is returned when vault respondes with no data
+	ErrVaultEmptyResponse = errors.New("no data returned from vault")
+	// ErrVaultUnexpectedResponse is returned when vault does not respond with the expected data
+	ErrVaultUnexpectedResponse = errors.New("unexpected response from vault")
+	// ErrNotInKubernetes is returned when vestibule is not running in a kubernetes cluster
+	ErrNotInKubernetes = errors.New("not running in kubernetes cluster")
 )
 
 // Client is an environ.Provider and github.com/hashicorp/vault/api.Client which will get the requested keys
