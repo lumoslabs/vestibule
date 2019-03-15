@@ -226,9 +226,15 @@ func (c *Client) getAwsCreds(path string) (map[string]string, error) {
 	if !ok {
 		return creds, errors.New("vault did not return secret key")
 	}
+	securityToken, ok := iam.Data["security_token"].(string)
+	if !ok {
+		return creds, errors.New("vault did not return a security token")
+	}
 
 	creds["AWS_ACCESS_KEY_ID"] = accessKey
 	creds["AWS_SECRET_ACCESS_KEY"] = secretKey
+	creds["AWS_SESSION_TOKEN"] = securityToken
+
 	return creds, nil
 }
 
