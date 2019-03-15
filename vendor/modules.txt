@@ -74,6 +74,8 @@ github.com/dimchansky/utfbom
 github.com/dustin/gojson
 # github.com/fatih/color v1.7.0
 github.com/fatih/color
+# github.com/go-ini/ini v1.42.0
+github.com/go-ini/ini
 # github.com/golang/protobuf v1.2.0
 github.com/golang/protobuf/proto
 github.com/golang/protobuf/ptypes

@@ -17,6 +17,22 @@ Available providers:
   * [`ejson`](https://github.com/Shopify/ejson)
   * plain old `.env` files
 
+## Building
+
+This project uses [goreleaser](https://goreleaser.com/) for building and publishing.
+Install instructions for goreleaser are [here](https://goreleaser.com/install/).
+
+The handy Makefile here provides targets:
+
+* `snapshot`: Use goreleaser to make an unpublished snapshot build
+* `release`: Use goreleaser to cut and publish a real release
+* `test`: Run go tests
+* `test-race`: Run go tests with `-race`
+* `test-memory`: Run go tests with `-msan`
+* `test-all`: Run all tests
+* `linux`: Use `go build` to build `vestibule` for `linux`
+* `darwin`: Use `go build` to build `vestibule` for `darwin`
+
 ## Usage
 
 ```

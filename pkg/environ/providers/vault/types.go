@@ -1,6 +1,16 @@
 package vault
 
-import "github.com/hashicorp/vault/api"
+import (
+	"errors"
+
+	"github.com/hashicorp/vault/api"
+)
+
+var (
+	VaultEmptyResponseErr      = errors.New("no data returned from vault")
+	VaultUnexpectedResponseErr = errors.New("unexpected response from vault")
+	NotInKubernetesErr         = errors.New("not running in kubernetes cluster")
+)
 
 // Client is an environ.Provider and github.com/hashicorp/vault/api.Client which will get the requested keys
 type Client struct {

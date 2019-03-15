@@ -9,6 +9,8 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/go-ini/ini"
+
 	"github.com/spf13/afero"
 
 	"github.com/lumoslabs/vestibule/pkg/environ"
@@ -43,9 +45,9 @@ const (
 	vaultAWSResponse = `
   {
     "data": {
-      "access_key": "1234",
-			"secret_key": "1234",
-			"security_token": "1234"
+      "access_key": "aws-access-key",
+      "secret_key": "aws-secret-key",
+      "security_token": "aws-session-token"
     }
   }`
 )
@@ -186,10 +188,13 @@ func TestAddToEnviron(t *testing.T) {
 		if test.iam != "" {
 			ak, ok := e.Load("AWS_ACCESS_KEY_ID")
 			assert.True(t, ok)
-			assert.Equal(t, "1234", ak)
+			assert.Equal(t, "aws-access-key", ak)
 
 			content, _ := afero.ReadFile(fs, c.(*Client).AwsCredFile)
-			assert.Equal(t, fmt.Sprintf(awsCredentialsFileFmt, "1234", "1234"), string(content))
+			data, _ := ini.Load(content)
+			assert.Equal(t, "aws-access-key", data.Section("default").Key("aws_access_key_id").String())
+			assert.Equal(t, "aws-secret-key", data.Section("default").Key("aws_secret_access_key").String())
+			assert.Equal(t, "aws-session-token", data.Section("default").Key("aws_session_token").String())
 		}
 
 		os.Unsetenv("VAULT_KV_KEYS")

@@ -1,8 +1,8 @@
 package vault
 
 import (
+	"bytes"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"io/ioutil"
 	"os"
@@ -11,6 +11,8 @@ import (
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/go-ini/ini"
 
 	"github.com/spf13/afero"
 
@@ -155,18 +157,10 @@ func (c *Client) AddToEnviron(e *environ.Environ) error {
 			}
 		}
 
-		var data map[string]interface{}
-		kvData := s.Data
-		_, metaOK := kvData["metadata"]
-		_, dataOK := kvData["data"]
-		if metaOK && dataOK {
-			kv2Data, ok := kvData["data"].(map[string]interface{})
-			if !ok {
-				return fmt.Errorf("Unexpected response from Vault: %T %#v", kvData, kvData)
-			}
-			data = kv2Data
-		} else {
-			data = kvData
+		data, ok := s.Data["data"].(map[string]interface{})
+		if !ok {
+			log.Debugf("Unexpected response from vault: %#v")
+			return VaultUnexpectedResponseErr
 		}
 
 		env := make(map[string]string)
@@ -190,7 +184,14 @@ func (c *Client) AddToEnviron(e *environ.Environ) error {
 			// attempt to write received creds to file
 			if er := fs.MkdirAll(filepath.Dir(c.AwsCredFile), 0755); er == nil {
 				if f, er := fs.Create(c.AwsCredFile); er == nil {
-					f.WriteString(fmt.Sprintf(awsCredentialsFileFmt, creds["AWS_ACCESS_KEY_ID"], creds["AWS_SECRET_ACCESS_KEY"]))
+					content := ini.Empty()
+					section, _ := content.NewSection("default")
+					for key, value := range creds {
+						section.NewKey(strings.ToLower(key), value)
+					}
+					buf := new(bytes.Buffer)
+					content.WriteTo(buf)
+					f.Write(buf.Bytes())
 					f.Close()
 					creds["AWS_SHARED_CREDENTIALS_FILE"] = c.AwsCredFile
 				} else {
@@ -207,35 +208,27 @@ func (c *Client) AddToEnviron(e *environ.Environ) error {
 }
 
 func (c *Client) getAwsCreds(path string) (map[string]string, error) {
-	creds := make(map[string]string)
-
 	log.Debugf("Requesting aws credentials from vault. path=%s", path)
 	iam, er := c.Logical().Read(path)
 	if er != nil {
-		return creds, er
+		return map[string]string(nil), er
 	}
 	if iam == nil {
-		return creds, errors.New("no data returned from vault")
+		return map[string]string(nil), VaultEmptyResponseErr
 	}
 
-	accessKey, ok := iam.Data["access_key"].(string)
-	if !ok {
-		return creds, errors.New("vault did not return access key")
-	}
-	secretKey, ok := iam.Data["secret_key"].(string)
-	if !ok {
-		return creds, errors.New("vault did not return secret key")
-	}
-	securityToken, ok := iam.Data["security_token"].(string)
-	if !ok {
-		return creds, errors.New("vault did not return a security token")
+	data := make(map[string]string, len(iam.Data))
+	for key, value := range iam.Data {
+		if v, ok := value.(string); ok {
+			data[key] = v
+		}
 	}
 
-	creds["AWS_ACCESS_KEY_ID"] = accessKey
-	creds["AWS_SECRET_ACCESS_KEY"] = secretKey
-	creds["AWS_SESSION_TOKEN"] = securityToken
-
-	return creds, nil
+	return map[string]string{
+		"AWS_ACCESS_KEY_ID":     data["access_key"],
+		"AWS_SECRET_ACCESS_KEY": data["secret_key"],
+		"AWS_SESSION_TOKEN":     data["security_token"],
+	}, nil
 }
 
 func vaultKeyParser(s string) (interface{}, error) {
@@ -265,10 +258,10 @@ func vaultKeyParser(s string) (interface{}, error) {
 
 func getKubernetesSAToken() ([]byte, error) {
 	if len(os.Getenv("KUBERNETES_SERVICE_HOST")) == 0 && len(os.Getenv("KUBERNETES_SERVICE_PORT")) == 0 {
-		return []byte(nil), errors.New("not running in kubernetes")
+		return []byte(nil), NotInKubernetesErr
 	}
 	if _, er := os.Stat(kubernetesTokenFilePath); er != nil {
-		return []byte(nil), errors.New("can't find service account token file")
+		return []byte(nil), NotInKubernetesErr
 	}
 
 	return ioutil.ReadFile(kubernetesTokenFilePath)
