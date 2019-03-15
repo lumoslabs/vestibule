@@ -3,7 +3,6 @@ package vault
 import (
 	"bytes"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"io/ioutil"
 	"os"
@@ -223,10 +222,6 @@ func (c *Client) getAwsCreds(path string) (map[string]string, error) {
 		if v, ok := value.(string); ok {
 			data[key] = v
 		}
-	}
-	securityToken, ok := iam.Data["security_token"].(string)
-	if !ok {
-		return creds, errors.New("vault did not return a security token")
 	}
 
 	return map[string]string{

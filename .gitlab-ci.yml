@@ -33,7 +33,7 @@ release:test:
   script:
     - echo "$QUAY_PASSWORD" | docker login --username="$QUAY_USERNAME" --password-stdin quay.io
     - echo "$CI_JOB_TOKEN" | docker login --username=gitlab-ci-token --password-stdin $CI_REGISTRY
-    - goreleaser release --rm-dist --snapshot
+    - make snapshot
 
 release:
   extends: .base
@@ -48,4 +48,4 @@ release:
   script:
     - echo "$QUAY_PASSWORD" | docker login --username="$QUAY_USERNAME" --password-stdin quay.io
     - echo "$CI_JOB_TOKEN" | docker login --username=gitlab-ci-token --password-stdin $CI_REGISTRY
-    - goreleaser release --rm-dist
+    - make release
