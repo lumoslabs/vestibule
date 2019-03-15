@@ -41,7 +41,6 @@ const (
 	// VaultKeySeparator is the separator between key and version in KeysEnvVar
 	VaultKeySeparator = "@"
 
-	awsCredentialsFileFmt   = "[default]\naws_access_key_id=%s\naws_secret_access_key=%s\n"
 	kubernetesTokenFilePath = "/var/run/secrets/kubernetes.io/serviceaccount/token"
 )
 
@@ -118,53 +117,61 @@ func (c *Client) AddToEnviron(e *environ.Environ) error {
 		e.Delete(ev)
 	}
 	for _, key := range c.Keys {
-		bits := strings.Split(key.Path, "/")
-		if len(bits) < 2 {
+		keyParts := strings.Split(key.Path, "/")
+		if len(keyParts) < 2 {
 			log.Debugf("Ignoring invalid vault KV key. key=%s", key.Path)
 			continue
 		}
 
-		tail := len(bits) - 1
+		tail := len(keyParts) - 1
 		for i := 0; i <= tail; i++ {
-			if bits[i] == "" {
-				bits = append(bits[:i], bits[i+1:tail+1]...)
+			if keyParts[i] == "" {
+				keyParts = append(keyParts[:i], keyParts[i+1:tail+1]...)
 				tail--
 				i--
 			}
 		}
 
 		// Add 'data' as the second path element if it does not exist
-		if bits[1] != "data" {
-			bits = append(bits, "")
-			copy(bits[2:], bits[1:])
-			bits[1] = "data"
+		if keyParts[1] != "data" {
+			keyParts = append(keyParts, "")
+			copy(keyParts[2:], keyParts[1:])
+			keyParts[1] = "data"
 		}
 
-		p := strings.Join(bits, "/")
-		d := make(map[string][]string)
+		reqPath := strings.Join(keyParts, "/")
+		reqData := make(map[string][]string)
 		if key.Version != nil {
-			d["version"] = []string{strconv.Itoa(*(key.Version))}
+			reqData["version"] = []string{strconv.Itoa(*(key.Version))}
 		}
-		log.Debugf("Fetching KVv2 secret from vault. key=%s data=%#v", p, d)
-		s, er := c.Logical().ReadWithData(p, d)
-		if er != nil || s == nil {
-			log.Debugf("Failed to get KVv2 secret from vault, trying KVv1. key=%s err=%v", p, er)
-			p = strings.Join(append(bits[:1], bits[2:]...), "/")
-			s, er := c.Logical().Read(p)
-			if er != nil || s == nil {
-				log.Debugf("Failed to get KVv1 secret from vault. key=%s err=%v", p, er)
+
+		log.Debugf("Fetching KVv2 secret from vault. key=%s data=%#v", reqPath, reqData)
+		response, er := c.Logical().ReadWithData(reqPath, reqData)
+
+		if er != nil || response == nil {
+			log.Debugf("Failed to get KVv2 secret from vault, trying KVv1. key=%s err=%v", reqPath, er)
+
+			reqPath = strings.Join(append(keyParts[:1], keyParts[2:]...), "/")
+			response, er := c.Logical().Read(reqPath)
+			if er != nil || response == nil {
+				log.Debugf("Failed to get KVv1 secret from vault. key=%s err=%v", reqPath, er)
 				continue
 			}
 		}
 
-		data, ok := s.Data["data"].(map[string]interface{})
-		if !ok {
-			log.Debugf("Unexpected response from vault: %#v")
-			return VaultUnexpectedResponseErr
+		var secrets map[string]interface{}
+		if meta, data := response.Data["metadata"], response.Data["data"]; meta != nil && data != nil {
+			var ok bool
+			if secrets, ok = data.(map[string]interface{}); !ok {
+				log.Debugf("Unexpected response from vault: %#v")
+				return ErrVaultUnexpectedResponse
+			}
+		} else {
+			secrets = response.Data
 		}
 
 		env := make(map[string]string)
-		for k, v := range data {
+		for k, v := range secrets {
 			if s, ok := v.(string); ok {
 				env[k] = s
 			}
@@ -176,8 +183,8 @@ func (c *Client) AddToEnviron(e *environ.Environ) error {
 	if c.IamRole != "" {
 		// attempt to get aws creds from vault
 		// only looks for sts roles
-		path := strings.TrimSpace(strings.Trim(c.AwsPath, "/")) + "/sts/" + strings.TrimSpace(c.IamRole)
-		creds, er := c.getAwsCreds(path)
+		reqPath := strings.TrimSpace(strings.Trim(c.AwsPath, "/")) + "/sts/" + strings.TrimSpace(c.IamRole)
+		creds, er := c.getAwsCreds(reqPath)
 
 		if er != nil || len(creds) > 0 {
 
@@ -195,13 +202,13 @@ func (c *Client) AddToEnviron(e *environ.Environ) error {
 					f.Close()
 					creds["AWS_SHARED_CREDENTIALS_FILE"] = c.AwsCredFile
 				} else {
-					log.Debugf("Failed writing shared aws credentials file. file=%s error=%v", c.AwsCredFile, er)
+					log.Debugf("Failed writing shared aws credentials file. file=%s err=%v", c.AwsCredFile, er)
 				}
 			}
 
 			e.SafeMerge(creds)
 		} else {
-			log.Debugf("Failed to get aws creds from vault. path=%s err=%v", path, er)
+			log.Debugf("Failed to get aws creds from vault. path=%s err=%v", reqPath, er)
 		}
 	}
 	return nil
@@ -214,7 +221,7 @@ func (c *Client) getAwsCreds(path string) (map[string]string, error) {
 		return map[string]string(nil), er
 	}
 	if iam == nil {
-		return map[string]string(nil), VaultEmptyResponseErr
+		return map[string]string(nil), ErrVaultEmptyResponse
 	}
 
 	data := make(map[string]string, len(iam.Data))
@@ -236,16 +243,16 @@ func vaultKeyParser(s string) (interface{}, error) {
 	keys := KVKeys{}
 
 	for _, k := range strings.Split(s, VaultKeysSeparator) {
-		bits := strings.SplitN(k, VaultKeySeparator, 2)
-		key := KVKey{Path: strings.TrimLeft(bits[0], "/"), Version: nil}
+		keyParts := strings.SplitN(k, VaultKeySeparator, 2)
+		key := KVKey{Path: strings.TrimLeft(keyParts[0], "/"), Version: nil}
 
 		keys = append(keys, &key)
 
-		if len(bits) == 1 {
+		if len(keyParts) == 1 {
 			continue
 		}
 
-		v, er := strconv.Atoi(bits[1])
+		v, er := strconv.Atoi(keyParts[1])
 		if er != nil {
 			return nil, er
 		}
@@ -258,10 +265,10 @@ func vaultKeyParser(s string) (interface{}, error) {
 
 func getKubernetesSAToken() ([]byte, error) {
 	if len(os.Getenv("KUBERNETES_SERVICE_HOST")) == 0 && len(os.Getenv("KUBERNETES_SERVICE_PORT")) == 0 {
-		return []byte(nil), NotInKubernetesErr
+		return []byte(nil), ErrNotInKubernetes
 	}
-	if _, er := os.Stat(kubernetesTokenFilePath); er != nil {
-		return []byte(nil), NotInKubernetesErr
+	if _, er := fs.Stat(kubernetesTokenFilePath); er != nil {
+		return []byte(nil), ErrNotInKubernetes
 	}
 
 	return ioutil.ReadFile(kubernetesTokenFilePath)

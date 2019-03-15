@@ -4,7 +4,7 @@
 ![Github liscense](https://img.shields.io/github/license/lumoslabs/vestibule.svg)
 ![Github release](https://img.shields.io/github/release-pre/lumoslabs/vestibule.svg)
 
-A [gosu](https://github.com/tianon/gosu) port which will load secrets from various secrets backends into the environment before exec'ing your baby. [Vault](https://www.vaultproject.io) and / or [Sops](https://github.com/mozilla/sops)
+A [gosu](https://github.com/tianon/gosu) port which will load secrets from various secrets backends into the environment before exec'ing your baby.
 
 ## Providers
 
@@ -12,10 +12,10 @@ Enable providers by setting `VEST_PROVIDERS` in the environment before running `
 
 Available providers:
 
-  * [`vault`](https://www.vaultproject.io)
-  * [`sops`](https://github.com/mozilla/sops)
-  * [`ejson`](https://github.com/Shopify/ejson)
-  * plain old `.env` files
+* [`vault`](https://www.vaultproject.io) (enabled by default)
+* [`sops`](https://github.com/mozilla/sops)
+* [`ejson`](https://github.com/Shopify/ejson)
+* plain old `.env` files
 
 ## Building
 

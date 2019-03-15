@@ -45,3 +45,9 @@ _Ordered oldest -> newest_
 
 * Vault Provider: reduce http.Client timeout to 5 seconds
 * Vault Provider: reduce retries to 1
+
+## v0.2.2
+
+* Vault Provider: add AWS_SESSION_TOKEN to aws creds gathered
+* fix checksum mismatch for hashicorp/go-rootcerts
+* Vault Provider: use go-ini for credential file creation
