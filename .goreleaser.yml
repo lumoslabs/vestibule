@@ -31,12 +31,14 @@ dockers:
       - "quay.io/lumoslabs/vestibule:{{ .Tag }}-alpine"
       - "registry.gitlab.com/lumoslabs/vestibule:{{ .Tag }}-alpine"
 
-  - dockerfile: docker/stretch/Dockerfile
+  - dockerfile: docker/ubuntu/bionic/Dockerfile
     binaries: [vest]
     image_templates:
-      - "quay.io/lumoslabs/vestibule:{{ .Tag }}-stretch"
+      - "quay.io/lumoslabs/vestibule:{{ .Tag }}-bionic"
       - "quay.io/lumoslabs/vestibule:{{ .Tag }}"
+      - "quay.io/lumoslabs/vestibule:v{{ .Major }}.{{ .Minor }}"
       - "quay.io/lumoslabs/vestibule:latest"
       - "registry.gitlab.com/lumoslabs/vestibule:{{ .Tag }}"
-      - "registry.gitlab.com/lumoslabs/vestibule:{{ .Tag }}-stretch"
+      - "registry.gitlab.com/lumoslabs/vestibule:{{ .Tag }}-bionic"
+      - "registry.gitlab.com/lumoslabs/vestibule:v{{ .Major }}.{{ .Minor }}"
       - "registry.gitlab.com/lumoslabs/vestibule:latest"
