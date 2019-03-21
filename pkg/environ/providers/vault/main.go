@@ -181,12 +181,11 @@ func (c *Client) AddToEnviron(e *environ.Environ) error {
 	}
 
 	if c.IamRole != "" {
+
 		// attempt to get aws creds from vault
 		// only looks for sts roles
 		reqPath := strings.TrimSpace(strings.Trim(c.AwsPath, "/")) + "/sts/" + strings.TrimSpace(c.IamRole)
-		creds, er := c.getAwsCreds(reqPath)
-
-		if er != nil || len(creds) > 0 {
+		if creds, er := c.getAwsCreds(reqPath); er == nil {
 
 			// attempt to write received creds to file
 			if er := fs.MkdirAll(filepath.Dir(c.AwsCredFile), 0755); er == nil {
