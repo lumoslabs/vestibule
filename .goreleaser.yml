@@ -36,7 +36,9 @@ dockers:
     image_templates:
       - "quay.io/lumoslabs/vestibule:{{ .Tag }}-bionic"
       - "quay.io/lumoslabs/vestibule:{{ .Tag }}"
+      - "quay.io/lumoslabs/vestibule:v{{ .Major }}.{{ .Minor }}"
       - "quay.io/lumoslabs/vestibule:latest"
       - "registry.gitlab.com/lumoslabs/vestibule:{{ .Tag }}"
       - "registry.gitlab.com/lumoslabs/vestibule:{{ .Tag }}-bionic"
+      - "registry.gitlab.com/lumoslabs/vestibule:v{{ .Major }}.{{ .Minor }}"
       - "registry.gitlab.com/lumoslabs/vestibule:latest"
