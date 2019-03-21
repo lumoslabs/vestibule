@@ -51,3 +51,7 @@ _Ordered oldest -> newest_
 * Vault Provider: add AWS_SESSION_TOKEN to aws creds gathered
 * fix checksum mismatch for hashicorp/go-rootcerts
 * Vault Provider: use go-ini for credential file creation
+
+## v0.2.3
+
+* Use ubuntu:bionic instead of debian:stretch for docker image
