@@ -34,6 +34,10 @@ const (
 	FilesEnvVar = "SOPS_FILES"
 )
 
+func init() {
+	environ.RegisterProvider(Name, New)
+}
+
 // New returns a Decoder object as an environ.Environ or an error if configuring failed.
 func New() (environ.Provider, error) {
 	defer func() { os.Unsetenv(FilesEnvVar) }()

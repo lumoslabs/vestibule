@@ -7,7 +7,7 @@ import (
 	"github.com/rs/zerolog"
 )
 
-var log Logger = NewLogger("info", os.Stdout)
+var log Logger = NewLogger("debug", os.Stdout)
 
 type jsonLogger struct {
 	zl zerolog.Logger

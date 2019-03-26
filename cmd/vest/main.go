@@ -5,7 +5,6 @@ import (
 	"os"
 	"os/exec"
 	"runtime"
-	"sync"
 	"syscall"
 
 	"github.com/lumoslabs/vestibule/pkg/environ/providers/dotenv"
@@ -19,13 +18,19 @@ import (
 	"github.com/lumoslabs/vestibule/pkg/environ"
 )
 
-var log environ.Logger
+var (
+	log             environ.Logger
+	secretProviders = []string{
+		dotenv.Name,
+		ejson.Name,
+		vault.Name,
+		sops.Name,
+	}
+)
 
 type config struct {
 	User      string   `env:"VEST_USER"`
 	Providers []string `env:"VEST_PROVIDERS" envSeparator:"," envDefault:"vault"`
-	OutFile   string   `env:"VEST_OUTPUT_FILE" envExpand:"true"`
-	OutFmt    string   `env:"VEST_OUTPUT_FORMAT" envDefault:"json"`
 	Debug     bool     `env:"VEST_DEBUG"`
 	Verbose   bool     `env:"VEST_VERBOSE"`
 }
@@ -48,62 +53,28 @@ func main() {
 		}
 	}
 
-	var (
-		e  = environ.New()
-		c  = new(config)
-		wg sync.WaitGroup
-	)
-
-	env.Parse(c)
-	if c.Verbose {
+	conf := new(config)
+	env.Parse(conf)
+	if conf.Verbose {
 		logLevel = "info"
 	}
-	if c.Debug {
+	if conf.Debug {
 		logLevel = "debug"
 	}
 
 	log = environ.NewLogger(logLevel, os.Stderr)
 	environ.SetLogger(log)
-	environ.RegisterProvider(dotenv.Name, dotenv.New)
-	environ.RegisterProvider(ejson.Name, ejson.New)
-	environ.RegisterProvider(vault.Name, vault.New)
-	environ.RegisterProvider(sops.Name, sops.New)
 
-	for _, name := range c.Providers {
-		p, er := environ.GetProvider(name)
-		if er != nil {
-			log.Infof("Skipping provider: %v", er)
-			continue
-		}
-
-		wg.Add(1)
-		go func() {
-			defer wg.Done()
-			if er := p.AddToEnviron(e); er != nil {
-				log.Infof("Failed to add secrets to Environ. provider=%s msg=%s", name, er.Error())
-			}
-		}()
-	}
-	wg.Wait()
-
-	if c.OutFile != "" {
-		log.Debugf("Writing secrets to file. file=%s fmt=%s", c.OutFile, c.OutFmt)
-		if file, er := os.Create(c.OutFile); er == nil {
-			e.SetMarshaller(c.OutFmt)
-			e.Write(file)
-			file.Close()
-		} else {
-			log.Infof("Failed to write secrets to file. file=%s msg=%s", c.OutFile, er.Error())
-		}
-	}
+	secrets := environ.New()
+	secrets.Populate(conf.Providers)
 
 	if name, er := exec.LookPath(os.Args[1]); er != nil {
 		os.Unsetenv("HOME")
-		e.Delete("HOME")
+		secrets.Delete("HOME")
 
 		u := os.Args[1]
-		if c.User != "" {
-			u = c.User
+		if conf.User != "" {
+			u = conf.User
 		}
 
 		usr, er := getUser(u)
@@ -118,43 +89,35 @@ func main() {
 			os.Exit(1)
 		}
 
-		if c.OutFile != "" {
-			os.Chown(c.OutFile, usr.Uid, usr.Gid)
-		}
-
 		if er := SetupUser(usr); er != nil {
 			log.Infof("error: failed switching to %q: %v", u, er)
 			os.Exit(1)
 		}
 
-		e.SafeAppend(os.Environ())
-		if er = syscall.Exec(name, os.Args[2:], e.Slice()); er != nil {
+		secrets.SafeAppend(os.Environ())
+		if er = syscall.Exec(name, os.Args[2:], secrets.Slice()); er != nil {
 			log.Infof("error: exec failed: %v", er)
 			os.Exit(1)
 		}
 	} else {
-		if c.User != "" {
+		if conf.User != "" {
 			os.Unsetenv("HOME")
-			e.Delete("HOME")
+			secrets.Delete("HOME")
 
-			usr, er := getUser(c.User)
+			usr, er := getUser(conf.User)
 			if er != nil {
-				log.Infof("error: unable to find %q: %v", c.User, er)
+				log.Infof("error: unable to find %q: %v", conf.User, er)
 				os.Exit(1)
 			}
 
-			if c.OutFile != "" {
-				os.Chown(c.OutFile, usr.Uid, usr.Gid)
-			}
-
 			if er := SetupUser(usr); er != nil {
-				log.Infof("error: failed switching to %q: %v", c.User, er)
+				log.Infof("error: failed switching to %q: %v", conf.User, er)
 				os.Exit(1)
 			}
 		}
 
-		e.SafeAppend(os.Environ())
-		if er = syscall.Exec(name, os.Args[1:], e.Slice()); er != nil {
+		secrets.SafeAppend(os.Environ())
+		if er = syscall.Exec(name, os.Args[1:], secrets.Slice()); er != nil {
 			log.Infof("error: exec failed: %v", er)
 			os.Exit(1)
 		}

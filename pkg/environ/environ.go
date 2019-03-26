@@ -9,6 +9,7 @@ import (
 	"regexp"
 	"sort"
 	"strings"
+	"sync"
 
 	"github.com/BurntSushi/toml"
 
@@ -19,6 +20,15 @@ import (
 
 // 1 or more non-word characters
 const regex = "[^0-9A-Za-z_]+"
+
+var marshalFuncs = map[string]marshaller{
+	"json":   json.Marshal,
+	"yaml":   yaml.Marshal,
+	"yml":    yaml.Marshal,
+	"toml":   marshalToml,
+	"env":    marshalDotEnv,
+	"dotenv": marshalDotEnv,
+}
 
 // New returns a new blank Environ instance
 func New() *Environ {
@@ -43,6 +53,39 @@ func NewFromEnv() *Environ {
 		re:         regexp.MustCompile(regex),
 		marshaller: json.Marshal,
 	}
+}
+
+// Marshallers returns a list of all valid serializers extensions
+func Marshallers() []string {
+	marshallers := make([]string, 0, len(marshalFuncs))
+	for k := range marshalFuncs {
+		marshallers = append(marshallers, k)
+	}
+	sort.Strings(marshallers)
+	return marshallers
+}
+
+// Populate adds secrets to the Environ from the given providers
+func (e *Environ) Populate(providers []string) {
+	var wg sync.WaitGroup
+
+	for _, name := range providers {
+		provider, er := GetProvider(name)
+		if er != nil {
+			log.Infof("Skipping provider: %v", er)
+			continue
+		}
+
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			if er := provider.AddToEnviron(e); er != nil {
+				log.Infof("Failed to add secrets to Environ. provider=%s msg=%s", name, er.Error())
+			}
+		}()
+	}
+
+	wg.Wait()
 }
 
 // Merge takes a map[string]string and adds it to this Environ, overwriting any conflicting keys.
@@ -154,15 +197,10 @@ func (e *Environ) String() string {
 
 // SetMarshaller sets the marshalling function for the Environ object.
 func (e *Environ) SetMarshaller(m string) {
-	switch strings.ToLower(m) {
-	case "yaml", "yml":
-		e.marshaller = yaml.Marshal
-	case "env", "dotenv":
-		e.marshaller = marshalDotEnv
-	case "toml":
-		e.marshaller = marshalToml
-	default:
-		e.marshaller = json.Marshal
+	if fn, ok := marshalFuncs[strings.ToLower(m)]; ok {
+		e.marshaller = fn
+	} else {
+		e.marshaller = marshalFuncs["json"]
 	}
 }
 

@@ -17,6 +17,10 @@ Available providers:
 * [`ejson`](https://github.com/Shopify/ejson)
 * plain old `.env` files
 
+## Images
+
+Alpine and Ubuntu based docker images are available at [`quay.io/lumoslabs/vestibule`](https://quay.io/repository/lumoslabs/vestibule?tag=latest&tab=tags)
+
 ## Building
 
 This project uses [goreleaser](https://goreleaser.com/) for building and publishing.
@@ -99,3 +103,26 @@ Usage: vest user-spec command [args]
       if DOTENV_FILES is set, will iterate over each file, parse and inject into Environ. If DOTENV_FILES is
       not set, will look for any .env files in CWD.
 ```
+
+## Writing to a file?
+
+Sometimes you just need credentials to be on disk, amirite?
+
+If so, you can run `bule` to write gathered secrets to a given file in a given format.
+All provider environment variables from `vest` are also applicable with `bule`
+
+    e.g. VAULT_KV_KEYS=secret/db-creds bule /var/secrets/db-creds.json
+
+    usage: bule [<flags>] <file>
+
+    Write secrets to a file! What could go wrong?
+
+    Flags:
+      -h, --help                Show context-sensitive help (also try --help-long and --help-man).
+          --debug               Debug output
+      -F, --format=json         Format of the output file. Available formats: [dotenv env json toml yaml yml]
+      -p, --provider=vault ...  Secret provider. Can be used multiple times. Available providers: [vault ejson sops dotenv]
+          --version             Show application version.
+
+    Args:
+      <file>  Path of output file

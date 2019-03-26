@@ -1,9 +1,9 @@
 FROM alpine:3.8
-COPY vest /bin/vest
+COPY ["bule", "vest", "/bin/"]
 RUN { \
   echo '#!/usr/bin/dumb-init /bin/sh'; \
-  echo 'exec /bin/vest $@'; \
+  echo 'exec $@'; \
   } >/entrypoint.sh \
   && chmod 755 /entrypoint.sh \ 
-  && apk add --update dumb-init
+  && apk add --update dumb-init ca-certificates
 ENTRYPOINT [ "/entrypoint.sh" ]

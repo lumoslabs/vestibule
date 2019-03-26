@@ -40,12 +40,7 @@ Usage: {{ .Self }} user-spec command [args]
 
     VEST_PROVIDERS=provider1,...
       Comma separated list of enabled providers. By default only vault is enabled.
-
-    VEST_OUTPUT_FILE=/path/to/file
-      If set, will write gathered secrets from enabled providers to the specified file. On error, does nothing.
-
-    VEST_OUTPUT_FORMAT=<json|yaml|yml|env|dotenv|toml>
-      The format of the output file. Default is json.
+      Available providers: {{ .Providers | printf "%v" }}
 
     SOPS_FILES=/path/to/file[;/path/to/output[;mode]]:...
       If SOPS_FILES is set, will iterate over each file (colon separated), attempting to decrypt with Sops.
@@ -96,11 +91,13 @@ Usage: {{ .Self }} user-spec command [args]
 `))
 	var b bytes.Buffer
 	template.Must(t, t.Execute(&b, struct {
-		Self    string
-		Version string
+		Self      string
+		Version   string
+		Providers []string
 	}{
-		Self:    filepath.Base(os.Args[0]),
-		Version: appVersion(),
+		Self:      filepath.Base(os.Args[0]),
+		Version:   appVersion(),
+		Providers: secretProviders,
 	}))
 	return strings.TrimSpace(b.String()) + "\n"
 }

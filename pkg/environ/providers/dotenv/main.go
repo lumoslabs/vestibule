@@ -18,6 +18,10 @@ const (
 	FilesEnvVar = "DOTENV_FILES"
 )
 
+func init() {
+	environ.RegisterProvider(Name, New)
+}
+
 // New returns a new Parser as an environ.Provider or an error if configuring failed
 // if no files are listed, will search in CWD for any .env files.
 func New() (environ.Provider, error) {

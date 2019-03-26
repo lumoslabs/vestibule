@@ -4,6 +4,11 @@ builds:
     binary: vest
     asmflags: ["all=-trimpath={{.Env.PWD}}"]
     gcflags: ["all=-trimpath={{.Env.PWD}}"]
+  - env: ["CGO_ENABLED=0"]
+    main: ./cmd/bule
+    binary: bule
+    asmflags: ["all=-trimpath={{.Env.PWD}}"]
+    gcflags: ["all=-trimpath={{.Env.PWD}}"]
 archive:
   files: ["none*"]
   replacements:
@@ -26,13 +31,13 @@ release:
   prerelease: true
 dockers:
   - dockerfile: docker/alpine/Dockerfile
-    binaries: [vest]
+    binaries: [bule, vest]
     image_templates:
       - "quay.io/lumoslabs/vestibule:{{ .Tag }}-alpine"
       - "registry.gitlab.com/lumoslabs/vestibule:{{ .Tag }}-alpine"
 
   - dockerfile: docker/ubuntu/bionic/Dockerfile
-    binaries: [vest]
+    binaries: [bule, vest]
     image_templates:
       - "quay.io/lumoslabs/vestibule:{{ .Tag }}-bionic"
       - "quay.io/lumoslabs/vestibule:{{ .Tag }}"
