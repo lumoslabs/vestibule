@@ -19,8 +19,8 @@ func NewLogger(l string, w io.Writer) Logger {
 	if er != nil {
 		lvl = zerolog.Disabled
 	}
-	zerolog.SetGlobalLevel(lvl)
-	return &jsonLogger{zerolog.New(w).With().Str("pkg", "environ").Logger()}
+
+	return &jsonLogger{zerolog.New(w).With().Timestamp().Logger().Level(lvl)}
 }
 
 func (l *jsonLogger) Info(msg string) {
