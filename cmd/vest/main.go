@@ -19,12 +19,29 @@ import (
 )
 
 var (
-	log             environ.Logger
+	log environ.Logger
+
+	envVars = map[string]string{
+		"VEST_USER": `The user [and group] to run the command as. Overrides commandline if set.
+e.g. VEST_USER=user[:group]`,
+		"VEST_PROVIDERS": fmt.Sprintf(`Comma separated list of enabled providers. By default only Vault is enabled.
+Available providers: %v`, secretProviders),
+		"VEST_DEBUG":   "Enable debug logging.",
+		"VEST_VERBOSE": "Enable verbose logging.",
+	}
+
 	secretProviders = []string{
 		dotenv.Name,
 		ejson.Name,
 		vault.Name,
 		sops.Name,
+	}
+	secretProviderEnvVars = []map[string]string{
+		envVars,
+		vault.EnvVars,
+		dotenv.EnvVars,
+		ejson.EnvVars,
+		sops.EnvVars,
 	}
 )
 

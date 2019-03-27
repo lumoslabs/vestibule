@@ -24,11 +24,6 @@ import (
 var (
 	fs  = afero.NewOsFs()
 	log = environ.GetLogger()
-
-	sensitiveEnvVars = []string{
-		"VAULT_KV_KEYS",
-		"VAULT_AUTH_DATA",
-	}
 )
 
 const (
