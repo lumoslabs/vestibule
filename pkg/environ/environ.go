@@ -23,16 +23,14 @@ import (
 // 1 or more non-word characters
 const regex = "[^0-9A-Za-z_]+"
 
-var (
-	marshalFuncs = map[string]marshaller{
-		"json":   json.Marshal,
-		"yaml":   yaml.Marshal,
-		"yml":    yaml.Marshal,
-		"toml":   marshalToml,
-		"env":    marshalDotEnv,
-		"dotenv": marshalDotEnv,
-	}
-)
+var marshalFuncs = map[string]marshaller{
+	"json":   json.Marshal,
+	"yaml":   yaml.Marshal,
+	"yml":    yaml.Marshal,
+	"toml":   marshalToml,
+	"env":    marshalDotEnv,
+	"dotenv": marshalDotEnv,
+}
 
 // New returns a new blank Environ instance
 func New() *Environ {
