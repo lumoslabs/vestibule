@@ -14,7 +14,6 @@ import (
 )
 
 var (
-	log             environ.Logger
 	secretProviders = []string{
 		dotenv.Name,
 		ejson.Name,
@@ -40,7 +39,7 @@ func main() {
 		logLevel = "debug"
 	}
 
-	log = newLogger(logLevel, os.Stderr)
+	log := newLogger(logLevel, os.Stderr)
 	logger.SetLogger(log)
 
 	secrets := environ.New()
