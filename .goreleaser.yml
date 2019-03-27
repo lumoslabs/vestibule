@@ -28,7 +28,7 @@ changelog:
       - "^docs:"
       - "^test:"
 release:
-  prerelease: true
+  prerelease: auto
 dockers:
   - dockerfile: docker/alpine/Dockerfile
     binaries: [bule, vest]
