@@ -9,6 +9,7 @@ import (
 	"github.com/lumoslabs/vestibule/pkg/environ/providers/ejson"
 	"github.com/lumoslabs/vestibule/pkg/environ/providers/sops"
 	"github.com/lumoslabs/vestibule/pkg/environ/providers/vault"
+	logger "github.com/lumoslabs/vestibule/pkg/log"
 	"gopkg.in/alecthomas/kingpin.v2"
 )
 
@@ -39,8 +40,8 @@ func main() {
 		logLevel = "debug"
 	}
 
-	log = environ.NewLogger(logLevel, os.Stderr)
-	environ.SetLogger(log)
+	log = newLogger(logLevel, os.Stderr)
+	logger.SetLogger(log)
 
 	secrets := environ.New()
 	secrets.Populate(*providers)

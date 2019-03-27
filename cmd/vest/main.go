@@ -16,11 +16,10 @@ import (
 	"github.com/caarlos0/env"
 
 	"github.com/lumoslabs/vestibule/pkg/environ"
+	logger "github.com/lumoslabs/vestibule/pkg/log"
 )
 
 var (
-	log environ.Logger
-
 	envVars = map[string]string{
 		"VEST_USER": `The user [and group] to run the command as. Overrides commandline if set.
 e.g. VEST_USER=user[:group]`,
@@ -79,8 +78,8 @@ func main() {
 		logLevel = "debug"
 	}
 
-	log = environ.NewLogger(logLevel, os.Stderr)
-	environ.SetLogger(log)
+	log := newLogger(logLevel, os.Stderr)
+	logger.SetLogger(log)
 
 	secrets := environ.New()
 	secrets.Populate(conf.Providers)

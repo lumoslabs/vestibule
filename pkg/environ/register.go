@@ -2,6 +2,8 @@ package environ
 
 import (
 	"fmt"
+
+	"github.com/lumoslabs/vestibule/pkg/log"
 )
 
 var providers map[string]ProviderFactory
