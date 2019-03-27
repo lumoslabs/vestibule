@@ -17,6 +17,10 @@ Available providers:
 * [`ejson`](https://github.com/Shopify/ejson)
 * plain old `.env` files
 
+## Images
+
+Alpine and Ubuntu based docker images are available at [`quay.io/lumoslabs/vestibule`](https://quay.io/repository/lumoslabs/vestibule?tag=latest&tab=tags)
+
 ## Building
 
 This project uses [goreleaser](https://goreleaser.com/) for building and publishing.
@@ -35,67 +39,106 @@ The handy Makefile here provides targets:
 
 ## Usage
 
-```
-Usage: vest user-spec command [args]
-   eg: vest myuser bash
-       vest nobody:root bash -c 'whoami && id'
-       vest 1000:1 id
+    Usage: vest user-spec command [args]
+      eg: vest myuser bash
+          vest nobody:root bash -c 'whoami && id'
+          vest 1000:1 id
 
-  Environment Variables:
+      Environment Variables:
+      
+        VEST_DEBUG
+          Enable debug logging.
 
-    VEST_USER=user[:group]
-      The user [and group] to run the command under. Overrides commandline if set.
+        VEST_PROVIDERS
+          Comma separated list of enabled providers. By default only Vault is
+          enabled. Available providers: [dotenv ejson vault sops]
 
-    VEST_PROVIDERS=provider1,...
-      Comma separated list of enabled providers. By default only vault is enabled.
+        VEST_USER
+          The user [and group] to run the command as. Overrides commandline if set.
+          e.g. VEST_USER=user[:group]
 
-    VEST_OUTPUT_FILE=/path/to/file
-      If set, will write gathered secrets from enabled providers to the specified file. On error, does nothing.
+        VEST_VERBOSE
+          Enable verbose logging.
 
-    VEST_OUTPUT_FORMAT=<json|yaml|yml|env|dotenv|toml>
-      The format of the output file. Default is json.
+        VAULT_*
+          All vault client configuration environment variables are respected. More
+          information at
+          https://www.vaultproject.io/docs/commands/#environment-variables
 
-    SOPS_FILES=/path/to/file[;/path/to/output[;mode]]:...
-      If SOPS_FILES is set, will iterate over each file (colon separated), attempting to decrypt with Sops.
-      The decrypted cleartext file can be optionally written out to a separate location (with optional filemode)
-      or will be parsed into a map[string]string and injected into Environ
+        VAULT_APP_ROLE
+          App role name to use with the kubernetes authentication method.
 
-    VAULT_KV_KEYS=/path/to/key[@version]:...
-      If VAULT_KEYS is set, will iterate over each key (colon separated), attempting to get the secret from Vault.
-      Secrets are pulled at the optional version or latest, then injected into Environ. If running in Kubernetes,
-      the Pod's ServiceAccount token will automatically be looked up and used for Vault authentication.
-    
-    VAULT_AUTH_METHOD=kubernetes
-      Authentication method for vault. Default is kubernetes.
+        VAULT_AUTH_DATA
+          Data payload to send with authentication request. JSON object.
 
-    VAULT_APP_ROLE
-      App role name to use with the kubernetes authentication method.
+        VAULT_AUTH_METHOD
+          Authentication method for vault. Default is "kubernetes".
 
-    VAULT_IAM_ROLE
-      IAM role to request from vault. If returns credentials, the access key and secret key will be injected into
-      the process environment using the standard environment variables and a credentials file will be written to
-      the path from AWS_SHARED_CREDENTIALS_FILE (by default "/var/aws/credentials")
+        VAULT_AUTH_PATH
+          Authentication path for vault authentication - e.g. okta/login/:user.
+          Overrides VAULT_AUTH_METHOD if set.
 
-    VAULT_AWS_PATH
-      Mountpoint for the vault AWS secret engine. Defaults to "aws".
+        VAULT_AWS_PATH
+          Mountpoint for the vault AWS secret engine. Defaults to "aws".
 
-    VAULT_AUTH_PATH
-      Authentication path for vault authentication - e.g. okta/login/:user. Overrides VAULT_AUTH_METHOD if set.
-    
-    VAULT_AUTH_DATA
-      Data payload to send with authentication request. JSON object.
+        VAULT_IAM_ROLE
+          IAM role to request from vault. If returns credentials, the access key and
+          secret key will be injected into the process environment using the
+          standard environment variables and a credentials file will be written to
+          the path from AWS_SHARED_CREDENTIALS_FILE (by default
+          "/var/aws/credentials")
 
-    VAULT_*
-      All vault client configuration environment variables are respected.
-      More information at https://www.vaultproject.io/docs/commands/#environment-variables
+        VAULT_KV_KEYS
+          If VAULT_KV_KEYS is set, will iterate over each key (colon separated),
+          attempting to get the secret from Vault. Secrets are pulled at the
+          optional version or latest, then injected into Environ. If running in
+          Kubernetes, the Pod's ServiceAccount token will automatically be looked up
+          and used for Vault authentication. e.g.
+          VAULT_KV_KEYS=/path/to/key1[@version]:/path/to/key2[@version]:...
 
-    EJSON_FILES=/path/to/file1:...
-    EJSON_KEYS=pubkey;privkey:...
-      If EJSON_FILES is set, will iterate over each file (colon separated), attempting to decrypt using keys
-      from EJSON_KEYS. If EJSON_FILES is not set, will look for any .ejson files in CWD. Cleartext decrypted
-      json will be parsed into a map[string]string and injected into Environ.
+        DOTENV_FILES
+          if DOTENV_FILES is set, will iterate over each file, parse and inject into
+          Environ. If DOTENV_FILES is not set, will look for any .env files in CWD.
+          e.g. DOTENV_FILES=/path/to/file1:/path/to/file2:...
 
-    DOTENV_FILES=/path/to/file1:...
-      if DOTENV_FILES is set, will iterate over each file, parse and inject into Environ. If DOTENV_FILES is
-      not set, will look for any .env files in CWD.
-```
+        EJSON_FILES
+          If EJSON_FILES is set, will iterate over each file (colon separated),
+          attempting to decrypt using keys from EJSON_KEYS. If EJSON_FILES is not
+          set, will look for any .ejson files in CWD. Cleartext decrypted json will
+          be parsed into a map[string]string and injected into Environ. e.g.
+          EJSON_FILES=/path/to/file1:/path/to/file2:...
+
+        EJSON_KEYS
+          Colon separated list of public/private ejson keys. Public/private keys
+          separated by semicolon. e.g.
+          EJSON_KEYS=pubkey1;privkey1:pubkey2;privkey2:...
+
+        SOPS_FILES
+          If SOPS_FILES is set, will iterate over each file (colon separated),
+          attempting to decrypt with Sops. The decrypted cleartext file can be
+          optionally written out to a separate location (with optional filemode) or
+          will be parsed into a map[string]string and injected into Environ e.g.
+          SOPS_FILES=/path/to/file[;/path/to/output[;mode]]:...
+
+## Writing to a file?
+
+Sometimes you just need credentials to be on disk, amirite?
+
+If so, you can run `bule` to write gathered secrets to a given file in a given format.
+All provider environment variables from `vest` are also applicable with `bule`
+
+    e.g. VAULT_KV_KEYS=secret/db-creds bule /var/secrets/db-creds.json
+
+    usage: bule [<flags>] <file>
+
+    Write secrets to a file! What could go wrong?
+
+    Flags:
+      -h, --help                Show context-sensitive help (also try --help-long and --help-man).
+          --debug               Debug output
+      -F, --format=json         Format of the output file. Available formats: [dotenv env json toml yaml yml]
+      -p, --provider=vault ...  Secret provider. Can be used multiple times. Available providers: [vault ejson sops dotenv]
+          --version             Show application version.
+
+    Args:
+      <file>  Path of output file

@@ -7,14 +7,14 @@ import (
 	"github.com/rs/zerolog"
 )
 
-var log Logger = NewLogger("info", os.Stdout)
+var log = NewLogger("info", os.Stdout)
 
 type jsonLogger struct {
 	zl zerolog.Logger
 }
 
 // NewLogger returns a zerologger that conforms to the Logger interface
-func NewLogger(l string, w io.Writer) *jsonLogger {
+func NewLogger(l string, w io.Writer) Logger {
 	lvl, er := zerolog.ParseLevel(l)
 	if er != nil {
 		lvl = zerolog.Disabled

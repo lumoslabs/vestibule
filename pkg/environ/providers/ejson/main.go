@@ -32,6 +32,10 @@ const (
 	KeysEnvVar = "EJSON_KEYS"
 )
 
+func init() {
+	environ.RegisterProvider(Name, New)
+}
+
 // New returns a new Decoder instance or an error if configuring failed.
 // If no ejson files are listed in FilesEnvVar, then will search in CWD for .ejson files
 func New() (environ.Provider, error) {

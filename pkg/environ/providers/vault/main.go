@@ -24,11 +24,6 @@ import (
 var (
 	fs  = afero.NewOsFs()
 	log = environ.GetLogger()
-
-	sensitiveEnvVars = []string{
-		"VAULT_KV_KEYS",
-		"VAULT_AUTH_DATA",
-	}
 )
 
 const (
@@ -43,6 +38,10 @@ const (
 
 	kubernetesTokenFilePath = "/var/run/secrets/kubernetes.io/serviceaccount/token"
 )
+
+func init() {
+	environ.RegisterProvider(Name, New)
+}
 
 // New returns a Client as an environ.Provider or an error if configuring failed. If running in a Kubernetes
 // cluster and not provided a token, will use the service account token.

@@ -1,10 +1,10 @@
 FROM ubuntu:bionic
-COPY vest /bin/vest
+COPY ["bule", "vest", "/bin/"]
 RUN { \
   echo '#!/usr/bin/dumb-init /bin/sh'; \
-  echo 'exec /bin/vest $@'; \
+  echo 'exec $@'; \
   } >/entrypoint.sh \
   && chmod 755 /entrypoint.sh \
   && apt-get update -qq \
-  && DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends dumb-init
+  && DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends dumb-init ca-certificates
 ENTRYPOINT [ "/entrypoint.sh" ]

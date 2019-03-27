@@ -10,7 +10,7 @@ type Environ struct {
 	sync.RWMutex
 	m          map[string]string
 	re         *regexp.Regexp
-	marshaller func(in interface{}) ([]byte, error)
+	marshaller marshaller
 }
 
 // Provider is a secrets provider able to inject variables into the environment
@@ -32,3 +32,5 @@ type Logger interface {
 	Debug(string)
 	Debugf(string, ...interface{})
 }
+
+type marshaller func(in interface{}) ([]byte, error)

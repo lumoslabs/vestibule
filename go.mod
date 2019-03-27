@@ -12,6 +12,8 @@ require (
 	github.com/SAP/go-hdb v0.13.2 // indirect
 	github.com/SermoDigital/jose v0.9.1 // indirect
 	github.com/Shopify/ejson v1.2.1
+	github.com/alecthomas/template v0.0.0-20160405071501-a0175ee3bccc // indirect
+	github.com/alecthomas/units v0.0.0-20151022065526-2efee857e7cf // indirect
 	github.com/armon/go-metrics v0.0.0-20180917152333-f0300d1749da // indirect
 	github.com/armon/go-radix v1.0.0 // indirect
 	github.com/asaskevich/govalidator v0.0.0-20180720115003-f9ffefc3facf // indirect
@@ -93,6 +95,7 @@ require (
 	google.golang.org/api v0.1.0 // indirect
 	google.golang.org/genproto v0.0.0-20190111180523-db91494dd46c // indirect
 	google.golang.org/grpc v1.18.0 // indirect
+	gopkg.in/alecthomas/kingpin.v2 v2.2.6
 	gopkg.in/asn1-ber.v1 v1.0.0-20181015200546-f715ec2f112d // indirect
 	gopkg.in/check.v1 v1.0.0-20180628173108-788fd7840127 // indirect
 	gopkg.in/ini.v1 v1.42.0 // indirect
