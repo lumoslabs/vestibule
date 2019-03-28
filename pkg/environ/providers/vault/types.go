@@ -46,7 +46,7 @@ type Client struct {
 	AppRole     string `env:"VAULT_APP_ROLE"`
 	IamRole     string `env:"VAULT_IAM_ROLE"`
 	AwsPath     string `env:"VAULT_AWS_PATH" envDefault:"aws"`
-	AwsCredFile string `env:"AWS_SHARED_CREDENTIALS_FILE" envDefault:"/var/aws/credentials"`
+	AwsCredFile string `env:"AWS_SHARED_CREDENTIALS_FILE" envDefault:"/var/run/aws/credentials"`
 	Keys        KVKeys `env:"VAULT_KV_KEYS"`
 }
 
