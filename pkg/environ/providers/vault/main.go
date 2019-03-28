@@ -74,46 +74,46 @@ func New() (environ.Provider, error) {
 	return v, nil
 }
 
-func (c *Client) setVaultToken() error {
+func (client *Client) setVaultToken() error {
 	var data map[string]interface{}
 
 	if token, er := getKubernetesSAToken(); er == nil && len(token) > 0 {
 		data = make(map[string]interface{})
-		data["role"] = c.AppRole
+		data["role"] = client.AppRole
 		data["jwt"] = string(token)
 	} else {
 		var d interface{}
-		if er := json.Unmarshal([]byte(c.AuthData), &d); er != nil {
+		if er := json.Unmarshal([]byte(client.AuthData), &d); er != nil {
 			return er
 		}
 		data = d.(map[string]interface{})
 	}
 
 	var path string
-	if c.AuthPath != "" {
-		path = fmt.Sprintf("auth/%s", strings.TrimPrefix(c.AuthPath, "auth/"))
+	if client.AuthPath != "" {
+		path = fmt.Sprintf("auth/%s", strings.TrimPrefix(client.AuthPath, "auth/"))
 	} else {
-		path = fmt.Sprintf("auth/%s/login", c.AuthMethod)
+		path = fmt.Sprintf("auth/%s/login", client.AuthMethod)
 	}
 
-	c.SetToken("token")
+	client.SetToken("token")
 	log.Debugf("Requesting session token from vault. path=%s data=%#v", path, data)
-	auth, er := c.Logical().Write(path, data)
+	auth, er := client.Logical().Write(path, data)
 	if er != nil {
 		return er
 	}
 
-	c.SetToken(auth.Auth.ClientToken)
+	client.SetToken(auth.Auth.ClientToken)
 	return nil
 }
 
 // AddToEnviron iterates through the given []VaultKeys, decoding the data returned from each key into a map[string]string
 // and merging it into the environ.Environ
-func (c *Client) AddToEnviron(e *environ.Environ) error {
+func (client *Client) AddToEnviron(e *environ.Environ) error {
 	for _, ev := range sensitiveEnvVars {
 		e.Delete(ev)
 	}
-	for _, key := range c.Keys {
+	for _, key := range client.Keys {
 		keyParts := strings.Split(key.Path, "/")
 		if len(keyParts) < 2 {
 			log.Debugf("Ignoring invalid vault KV key. key=%s", key.Path)
@@ -143,13 +143,13 @@ func (c *Client) AddToEnviron(e *environ.Environ) error {
 		}
 
 		log.Debugf("Fetching KVv2 secret from vault. key=%s data=%#v", reqPath, reqData)
-		response, er := c.Logical().ReadWithData(reqPath, reqData)
+		response, er := client.Logical().ReadWithData(reqPath, reqData)
 
 		if er != nil || response == nil {
 			log.Debugf("Failed to get KVv2 secret from vault, trying KVv1. key=%s err=%v", reqPath, er)
 
 			reqPath = strings.Join(append(keyParts[:1], keyParts[2:]...), "/")
-			response, er := c.Logical().Read(reqPath)
+			response, er := client.Logical().Read(reqPath)
 			if er != nil || response == nil {
 				log.Debugf("Failed to get KVv1 secret from vault. key=%s err=%v", reqPath, er)
 				continue
@@ -177,16 +177,16 @@ func (c *Client) AddToEnviron(e *environ.Environ) error {
 		e.SafeMerge(env)
 	}
 
-	if c.IamRole != "" {
+	if client.IamRole != "" {
 
 		// attempt to get aws creds from vault
 		// only looks for sts roles
-		reqPath := strings.TrimSpace(strings.Trim(c.AwsPath, "/")) + "/sts/" + strings.TrimSpace(c.IamRole)
-		if creds, er := c.getAwsCreds(reqPath); er == nil {
+		reqPath := strings.TrimSpace(strings.Trim(client.AwsPath, "/")) + "/sts/" + strings.TrimSpace(client.IamRole)
+		if creds, er := client.getAwsCreds(reqPath); er == nil {
 
 			// attempt to write received creds to file
-			if er := fs.MkdirAll(filepath.Dir(c.AwsCredFile), 0755); er == nil {
-				if f, er := fs.Create(c.AwsCredFile); er == nil {
+			if er := fs.MkdirAll(filepath.Dir(client.AwsCredFile), 0755); er == nil {
+				if f, er := fs.Create(client.AwsCredFile); er == nil {
 					content := ini.Empty()
 					section, _ := content.NewSection("default")
 					for key, value := range creds {
@@ -196,9 +196,9 @@ func (c *Client) AddToEnviron(e *environ.Environ) error {
 					content.WriteTo(buf)
 					f.Write(buf.Bytes())
 					f.Close()
-					creds["AWS_SHARED_CREDENTIALS_FILE"] = c.AwsCredFile
+					creds["AWS_SHARED_CREDENTIALS_FILE"] = client.AwsCredFile
 				} else {
-					log.Debugf("Failed writing shared aws credentials file. file=%s err=%v", c.AwsCredFile, er)
+					log.Debugf("Failed writing shared aws credentials file. file=%s err=%v", client.AwsCredFile, er)
 				}
 			}
 
@@ -210,9 +210,9 @@ func (c *Client) AddToEnviron(e *environ.Environ) error {
 	return nil
 }
 
-func (c *Client) getAwsCreds(path string) (map[string]string, error) {
+func (client *Client) getAwsCreds(path string) (map[string]string, error) {
 	log.Debugf("Requesting aws credentials from vault. path=%s", path)
-	iam, er := c.Logical().Read(path)
+	iam, er := client.Logical().Read(path)
 	if er != nil {
 		return map[string]string(nil), er
 	}
