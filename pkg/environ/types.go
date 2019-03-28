@@ -11,6 +11,7 @@ type Environ struct {
 	m          map[string]string
 	re         *regexp.Regexp
 	marshaller marshaller
+	UpcaseKeys bool
 }
 
 // Provider is a secrets provider able to inject variables into the environment
