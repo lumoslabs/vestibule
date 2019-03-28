@@ -16,6 +16,8 @@ import (
 	"gopkg.in/yaml.v2"
 
 	"github.com/joho/godotenv"
+
+	"github.com/lumoslabs/vestibule/pkg/log"
 )
 
 // 1 or more non-word characters

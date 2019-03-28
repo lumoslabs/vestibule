@@ -19,12 +19,10 @@ import (
 	"github.com/caarlos0/env"
 	"github.com/hashicorp/vault/api"
 	"github.com/lumoslabs/vestibule/pkg/environ"
+	"github.com/lumoslabs/vestibule/pkg/log"
 )
 
-var (
-	fs  = afero.NewOsFs()
-	log = environ.GetLogger()
-)
+var fs = afero.NewOsFs()
 
 const (
 	// Name is the Provider name

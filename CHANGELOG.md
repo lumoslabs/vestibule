@@ -55,3 +55,12 @@ _Ordered oldest -> newest_
 ## v0.2.3
 
 * Use ubuntu:bionic instead of debian:stretch for docker image
+
+## v1.0.0
+
+* Release!
+* `bule`
+  * Handles secrets writing
+* Docker
+  * Add bule to the entrypoint.sh
+  * Add jq

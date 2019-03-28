@@ -120,7 +120,7 @@ The handy Makefile here provides targets:
           will be parsed into a map[string]string and injected into Environ e.g.
           SOPS_FILES=/path/to/file[;/path/to/output[;mode]]:...
 
-## Writing to a file?
+## Writing to a file
 
 Sometimes you just need credentials to be on disk, amirite?
 
