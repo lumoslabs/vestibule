@@ -12,7 +12,7 @@ type zl struct {
 
 func newLogger(level string, writer io.Writer) (l *zl) {
 	l = &zl{zerolog.New(writer).With().Timestamp().Logger()}
-	if lvl, er := zerolog.ParseLevel(level); er != nil {
+	if lvl, er := zerolog.ParseLevel(level); er == nil {
 		l.Level(lvl)
 	} else {
 		l.Logger.Level(zerolog.Disabled)
