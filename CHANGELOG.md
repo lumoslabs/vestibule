@@ -64,3 +64,9 @@ _Ordered oldest -> newest_
 * Docker
   * Add bule to the entrypoint.sh
   * Add jq
+
+## v1.0.1
+
+* Actually add `bule` to the Docker entrypoint.sh
+* Actually add jq
+* Split logging out to a simple internal package
