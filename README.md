@@ -45,13 +45,16 @@ The handy Makefile here provides targets:
           vest 1000:1 id
 
       Environment Variables:
-      
+
         VEST_DEBUG
           Enable debug logging.
 
         VEST_PROVIDERS
           Comma separated list of enabled providers. By default only Vault is
           enabled. Available providers: [dotenv ejson vault sops]
+
+        VEST_UPCASE_VAR_NAMES
+          Upcase environment variable names gathered from secret providers.
 
         VEST_USER
           The user [and group] to run the command as. Overrides commandline if set.

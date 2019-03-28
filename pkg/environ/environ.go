@@ -38,6 +38,7 @@ func New() *Environ {
 		m:          make(map[string]string),
 		re:         regexp.MustCompile(regex),
 		marshaller: json.Marshal,
+		UpcaseKeys: true,
 	}
 }
 
@@ -54,6 +55,7 @@ func NewFromEnv() *Environ {
 		m:          e,
 		re:         regexp.MustCompile(regex),
 		marshaller: json.Marshal,
+		UpcaseKeys: true,
 	}
 }
 
@@ -169,7 +171,10 @@ func (e *Environ) Slice() []string {
 	e.RLock()
 	var s = make([]string, 0, e.Len())
 	for k, v := range e.m {
-		key := strings.ToUpper(e.re.ReplaceAllString(k, "_"))
+		key := e.re.ReplaceAllString(k, "_")
+		if e.UpcaseKeys {
+			key = strings.ToUpper(key)
+		}
 		s = append(s, key+"="+v)
 	}
 	e.RUnlock()
@@ -185,7 +190,10 @@ func (e *Environ) Map() map[string]string {
 
 	dup := make(map[string]string, len(e.m))
 	for k, v := range e.m {
-		key := strings.ToUpper(e.re.ReplaceAllString(k, "_"))
+		key := e.re.ReplaceAllString(k, "_")
+		if e.UpcaseKeys {
+			key = strings.ToUpper(key)
+		}
 		dup[key] = v
 	}
 

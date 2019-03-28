@@ -25,8 +25,9 @@ var (
 e.g. VEST_USER=user[:group]`,
 		"VEST_PROVIDERS": fmt.Sprintf(`Comma separated list of enabled providers. By default only Vault is enabled.
 Available providers: %v`, secretProviders),
-		"VEST_DEBUG":   "Enable debug logging.",
-		"VEST_VERBOSE": "Enable verbose logging.",
+		"VEST_DEBUG":            "Enable debug logging.",
+		"VEST_VERBOSE":          "Enable verbose logging.",
+		"VEST_UPCASE_VAR_NAMES": "Upcase environment variable names gathered from secret providers.",
 	}
 
 	secretProviders = []string{
@@ -45,10 +46,11 @@ Available providers: %v`, secretProviders),
 )
 
 type config struct {
-	User      string   `env:"VEST_USER"`
-	Providers []string `env:"VEST_PROVIDERS" envSeparator:"," envDefault:"vault"`
-	Debug     bool     `env:"VEST_DEBUG"`
-	Verbose   bool     `env:"VEST_VERBOSE"`
+	User       string   `env:"VEST_USER"`
+	Providers  []string `env:"VEST_PROVIDERS" envSeparator:"," envDefault:"vault"`
+	Debug      bool     `env:"VEST_DEBUG"`
+	Verbose    bool     `env:"VEST_VERBOSE"`
+	UpcaseVars bool     `env:"VEST_UPCASE_VAR_NAMES"`
 }
 
 func init() {
@@ -82,6 +84,7 @@ func main() {
 	logger.SetLogger(log)
 
 	secrets := environ.New()
+	secrets.UpcaseKeys = conf.UpcaseVars
 	secrets.Populate(conf.Providers)
 
 	if name, er := exec.LookPath(os.Args[1]); er != nil {
