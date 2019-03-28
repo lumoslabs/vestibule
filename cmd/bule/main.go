@@ -34,7 +34,7 @@ func main() {
 	app.HelpFlag.Short('h')
 	kingpin.MustParse(app.Parse(os.Args[1:]))
 
-	logLevel := ""
+	logLevel := "disabled"
 	if *debug {
 		logLevel = "debug"
 	}

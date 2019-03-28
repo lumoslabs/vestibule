@@ -10,14 +10,12 @@ type zl struct {
 	zerolog.Logger
 }
 
-func newLogger(level string, writer io.Writer) (l *zl) {
-	l = &zl{zerolog.New(writer).With().Timestamp().Logger()}
+func newLogger(level string, writer io.Writer) *zl {
+	zlog := zerolog.New(writer).With().Timestamp().Logger().Level(zerolog.Disabled)
 	if lvl, er := zerolog.ParseLevel(level); er == nil {
-		l.Level(lvl)
-	} else {
-		l.Logger.Level(zerolog.Disabled)
+		zlog = zlog.Level(lvl)
 	}
-	return
+	return &zl{zlog}
 }
 
 func (l *zl) Info(msg string) {
