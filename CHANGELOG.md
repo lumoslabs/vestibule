@@ -70,3 +70,11 @@ _Ordered oldest -> newest_
 * Actually add `bule` to the Docker entrypoint.sh
 * Actually add jq
 * Split logging out to a simple internal package
+
+## v1.1.0
+
+* Logging works as intended now e.g. levels are fixed
+* In image entrypoint.sh, `bule` writes secrets to /var/run/vestibule/secrets
+* Default path for aws credentials file is `/var/run/aws/credentials`
+* Case of variable names is configurable, defaults to upcasing them
+* Add verbose logging for `bule`
