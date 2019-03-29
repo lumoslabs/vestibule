@@ -138,9 +138,11 @@ All provider environment variables from `vest` are also applicable with `bule`
 
     Flags:
       -h, --help                Show context-sensitive help (also try --help-long and --help-man).
-          --debug               Debug output
+      -D, --debug               Debug output
+      -v, --verbose             Verbose output
       -F, --format=json         Format of the output file. Available formats: [dotenv env json toml yaml yml]
-      -p, --provider=vault ...  Secret provider. Can be used multiple times. Available providers: [vault ejson sops dotenv]
+      -p, --provider=vault ...  Secret provider. Can be used multiple times. Available providers: [dotenv ejson vault sops]
+          --upcase-var-names    Upcase environment variable names gathered from secret providers.
           --version             Show application version.
 
     Args:
