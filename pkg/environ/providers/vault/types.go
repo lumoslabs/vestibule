@@ -13,6 +13,10 @@ var (
 	ErrVaultUnexpectedResponse = errors.New("unexpected response from vault")
 	// ErrNotInKubernetes is returned when vestibule is not running in a kubernetes cluster
 	ErrNotInKubernetes = errors.New("not running in kubernetes cluster")
+	// ErrInvalidKVKey is returned when the given key is invalid
+	ErrInvalidKVKey = errors.New("invalid vault KV key")
+	// ErrUnexpectedVaultResponse is returned when vault returns something we cannot handle
+	ErrUnexpectedVaultResponse = errors.New("unexpected response from vault")
 
 	sensitiveEnvVars = []string{
 		"VAULT_KV_KEYS",

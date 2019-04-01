@@ -27,7 +27,7 @@ e.g. VEST_USER=user[:group]`,
 Available providers: %v`, secretProviders),
 		"VEST_DEBUG":            "Enable debug logging.",
 		"VEST_VERBOSE":          "Enable verbose logging.",
-		"VEST_UPCASE_VAR_NAMES": "Upcase environment variable names gathered from secret providers.",
+		"VEST_UPCASE_VAR_NAMES": "Upcase environment variable names gathered from secret providers. Default: true",
 	}
 
 	secretProviders = []string{
@@ -50,7 +50,7 @@ type config struct {
 	Providers  []string `env:"VEST_PROVIDERS" envSeparator:"," envDefault:"vault"`
 	Debug      bool     `env:"VEST_DEBUG"`
 	Verbose    bool     `env:"VEST_VERBOSE"`
-	UpcaseVars bool     `env:"VEST_UPCASE_VAR_NAMES"`
+	UpcaseVars bool     `env:"VEST_UPCASE_VAR_NAMES" envDefault:"true"`
 }
 
 func init() {
@@ -82,6 +82,9 @@ func main() {
 
 	log := newLogger(logLevel, os.Stderr)
 	logger.SetLogger(log)
+	if conf.Debug {
+		log.Debugf("Config: %#v", conf)
+	}
 
 	secrets := environ.New()
 	secrets.UpcaseKeys = conf.UpcaseVars
