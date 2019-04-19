@@ -164,6 +164,9 @@ func TestAddToEnviron(t *testing.T) {
 		os.Unsetenv("VAULT_ADDR")
 	}()
 
+	// Prevents this from getting passed through from higher process' env.
+	os.Unsetenv("VAULT_IAM_ROLE")
+
 	for _, test := range tt {
 		os.Setenv("VAULT_KV_KEYS", test.keys)
 		if test.iam != "" {
