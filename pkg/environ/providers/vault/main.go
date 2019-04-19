@@ -52,24 +52,31 @@ func New() (environ.Provider, error) {
 	}()
 
 	log.Debugf("Creating vault api client. addr=%v", os.Getenv("VAULT_ADDR"))
-	clientTimeout, timeoutErr := time.ParseDuration(os.Getenv("VAULT_CLIENT_TIMEOUT"))
-	clientMaxRetries, maxRetryErr := strconv.Atoi(os.Getenv("VAULT_MAX_RETRIES"))
-	vaultConfig := api.DefaultConfig()
-	if timeoutErr != nil {
+
+	clientTimeout, err := time.ParseDuration(os.Getenv("VAULT_CLIENT_TIMEOUT"))
+
+	if err != nil {
 		clientTimeout = time.Second * 3
 	}
-	if maxRetryErr != nil {
+
+	clientMaxRetries, err := strconv.Atoi(os.Getenv("VAULT_MAX_RETRIES"))
+
+	if err != nil {
 		clientMaxRetries = 1
 	}
+
+	vaultConfig := api.DefaultConfig()
 	vaultConfig.HttpClient.Timeout = clientTimeout
 	vaultConfig.MaxRetries = clientMaxRetries
 	vc, er := api.NewClient(vaultConfig)
+
 	if er != nil {
 		return nil, er
 	}
 
 	v := &Client{Client: vc}
 	p := env.CustomParsers{reflect.TypeOf(KVKeys{}): vaultKeyParser}
+
 	if er := env.ParseWithFuncs(v, p); er != nil {
 		return nil, er
 	}
