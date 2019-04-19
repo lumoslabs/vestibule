@@ -52,10 +52,17 @@ func New() (environ.Provider, error) {
 	}()
 
 	log.Debugf("Creating vault api client. addr=%v", os.Getenv("VAULT_ADDR"))
+	clientTimeout, timeoutErr := time.ParseDuration(os.Getenv("VAULT_CLIENT_TIMEOUT"))
+	clientMaxRetries, maxRetryErr := strconv.Atoi(os.Getenv("VAULT_MAX_RETRIES"))
 	vaultConfig := api.DefaultConfig()
-	vaultConfig.Timeout = time.Second * 5
-	vaultConfig.HttpClient.Timeout = time.Second * 5
-	vaultConfig.MaxRetries = 2
+	if timeoutErr != nil {
+		clientTimeout = time.Second * 3
+	}
+	if maxRetryErr != nil {
+		clientMaxRetries = 1
+	}
+	vaultConfig.HttpClient.Timeout = clientTimeout
+	vaultConfig.MaxRetries = clientMaxRetries
 	vc, er := api.NewClient(vaultConfig)
 	if er != nil {
 		return nil, er
