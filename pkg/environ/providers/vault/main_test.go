@@ -170,6 +170,9 @@ func TestAddToEnviron(t *testing.T) {
 			os.Setenv("VAULT_IAM_ROLE", test.iam)
 		}
 
+		os.Setenv("VAULT_CLIENT_TIMEOUT", "5s")
+		os.Setenv("VAULT_MAX_RETRIES", "1")
+
 		c, er := New()
 		require.NoError(t, er)
 
@@ -199,5 +202,7 @@ func TestAddToEnviron(t *testing.T) {
 
 		os.Unsetenv("VAULT_KV_KEYS")
 		os.Unsetenv("VAULT_IAM_ROLE")
+		os.Unsetenv("VAULT_CLIENT_TIMEOUT")
+		os.Unsetenv("VAULT_MAX_RETRIES")
 	}
 }
