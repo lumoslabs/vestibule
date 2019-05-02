@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"reflect"
@@ -17,6 +16,7 @@ import (
 
 	"github.com/spf13/afero"
 
+	util "github.com/Masterminds/goutils"
 	"github.com/caarlos0/env"
 	"github.com/hashicorp/vault/api"
 	"github.com/lumoslabs/vestibule/pkg/environ"
@@ -36,6 +36,9 @@ const (
 	VaultKeySeparator = "@"
 
 	kubernetesTokenFilePath = "/var/run/secrets/kubernetes.io/serviceaccount/token"
+
+	defaultClientTimeout = time.Second * 3
+	defaultClientRetries = 1
 )
 
 func init() {
@@ -53,22 +56,15 @@ func New() (environ.Provider, error) {
 
 	log.Debugf("Creating vault api client. addr=%v", os.Getenv("VAULT_ADDR"))
 
-	clientTimeout, err := time.ParseDuration(os.Getenv("VAULT_CLIENT_TIMEOUT"))
-
-	if err != nil {
-		clientTimeout = time.Second * 3
+	vcc := api.DefaultConfig()
+	if t := os.Getenv(api.EnvVaultClientTimeout); t == "" {
+		vcc.Timeout = defaultClientTimeout
+	}
+	if r := os.Getenv(api.EnvVaultMaxRetries); r == "" {
+		vcc.MaxRetries = defaultClientRetries
 	}
 
-	clientMaxRetries, err := strconv.Atoi(os.Getenv("VAULT_MAX_RETRIES"))
-
-	if err != nil {
-		clientMaxRetries = 1
-	}
-
-	vaultConfig := api.DefaultConfig()
-	vaultConfig.HttpClient.Timeout = clientTimeout
-	vaultConfig.MaxRetries = clientMaxRetries
-	vc, er := api.NewClient(vaultConfig)
+	vc, er := api.NewClient(vcc)
 
 	if er != nil {
 		return nil, er
@@ -81,45 +77,93 @@ func New() (environ.Provider, error) {
 		return nil, er
 	}
 
+	v.SetLoginPath()
 	if v.Token() == "" {
-		if er := v.setVaultToken(); er != nil {
-			return nil, fmt.Errorf("Vault login failed: %v", er)
+		if er := v.SetVaultToken(); er != nil {
+			return nil, fmt.Errorf("vault login failed: %v", er)
 		}
 	}
 	return v, nil
 }
 
-func (client *Client) setVaultToken() error {
-	var data map[string]interface{}
-
-	if token, er := getKubernetesSAToken(); er == nil && len(token) > 0 {
-		data = make(map[string]interface{})
+// SetVaultToken sets the AuthMethod and AuthPath if not already set and uses those to request a session token from vault
+func (client *Client) SetVaultToken() error {
+	data := make(map[string]interface{})
+	switch {
+	case !util.IsBlank(client.AppRole) && !util.IsBlank(client.AppSecret):
+		log.Debug("using approle")
+		data["role_id"] = client.AppRole
+		data["secret_id"] = client.AppSecret
+	case !util.IsBlank(client.AppRole) && !util.IsBlank(client.AppJWT):
+		log.Debug("using jwt")
 		data["role"] = client.AppRole
-		data["jwt"] = string(token)
-	} else {
-		var d interface{}
-		if er := json.Unmarshal([]byte(client.AuthData), &d); er != nil {
-			return er
+		data["jwt"] = client.AppJWT
+	case !util.IsBlank(client.AuthData):
+		log.Debugf("using auth data data=%v", client.AuthData)
+		if er := json.Unmarshal([]byte(client.AuthData), &data); er != nil {
+			return fmt.Errorf("failed to unmarshal VAULT_AUTH_DATA: %v", er)
 		}
-		data = d.(map[string]interface{})
-	}
-
-	var path string
-	if client.AuthPath != "" {
-		path = fmt.Sprintf("auth/%s", strings.TrimPrefix(client.AuthPath, "auth/"))
-	} else {
-		path = fmt.Sprintf("auth/%s/login", client.AuthMethod)
+	default:
+		log.Debug("using k8s")
+		kjwt, er := getKubernetesSAToken()
+		if er != nil || len(kjwt) == 0 {
+			return fmt.Errorf("failed to get k8s service account token: %v", er)
+		}
+		data["role"] = client.AppRole
+		data["jwt"] = string(kjwt)
 	}
 
 	client.SetToken("token")
-	log.Debugf("Requesting session token from vault. path=%s data=%#v", path, data)
-	auth, er := client.Logical().Write(path, data)
+	log.Debugf("Requesting session token from vault. path=%s data=%#v", client.AuthPath, sanitize(data))
+	auth, er := client.Logical().Write(client.AuthPath, data)
 	if er != nil {
 		return er
 	}
 
-	client.SetToken(auth.Auth.ClientToken)
+	token, er := auth.TokenID()
+	if er != nil {
+		return er
+	}
+	if util.IsBlank(token) {
+		return ErrVaultEmptyResponse
+	}
+
+	client.SetToken(token)
 	return nil
+}
+
+// SetAuthMethod sets the AuthMethod if not already set
+func (client *Client) SetAuthMethod() {
+	switch {
+	case !util.IsBlank(client.AuthMethod):
+	case !util.IsBlank(client.AppSecret):
+		client.AuthMethod = "approle"
+	case !util.IsBlank(client.AppJWT):
+		client.AuthMethod = "jwt"
+	default:
+		client.AuthMethod = "kubernetes"
+	}
+}
+
+// SetLoginPath sets the api path to login with vault for the auth method
+func (client *Client) SetLoginPath() {
+	client.SetAuthMethod()
+
+	if util.IsBlank(client.AuthPath) {
+		client.AuthPath = fmt.Sprintf(`auth/%s/login`, client.AuthMethod)
+	} else {
+		parts := strings.Split(client.AuthPath, "/")
+		if parts[0] != "auth" {
+			parts = append([]string{"auth"}, parts...)
+		}
+		if len(parts) == 2 {
+			parts = append(parts, "login")
+		}
+		client.AuthPath = strings.Join(parts, "/")
+		client.AuthMethod = parts[1]
+	}
+
+	client.AuthPath = strings.TrimSpace(client.AuthPath)
 }
 
 // AddToEnviron iterates through the given []VaultKeys, decoding the data returned from each key into a map[string]string
@@ -294,12 +338,21 @@ func vaultKeyParser(s string) (interface{}, error) {
 }
 
 func getKubernetesSAToken() ([]byte, error) {
-	if len(os.Getenv("KUBERNETES_SERVICE_HOST")) == 0 && len(os.Getenv("KUBERNETES_SERVICE_PORT")) == 0 {
+	if util.IsBlank(os.Getenv(EnvKubernetesServiceHost)) && util.IsBlank(os.Getenv(EnvKubernetesServicePort)) {
 		return []byte(nil), ErrNotInKubernetes
 	}
 	if _, er := fs.Stat(kubernetesTokenFilePath); er != nil {
 		return []byte(nil), ErrNotInKubernetes
 	}
 
-	return ioutil.ReadFile(kubernetesTokenFilePath)
+	return afero.ReadFile(fs, kubernetesTokenFilePath)
+}
+
+func sanitize(sensitive map[string]interface{}) map[string]string {
+	clean := make(map[string]string, len(sensitive))
+	for k, v := range sensitive {
+		val, _ := util.Abbreviate(fmt.Sprint(v), 4)
+		clean[k] = val
+	}
+	return clean
 }
