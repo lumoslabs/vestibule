@@ -57,10 +57,10 @@ func New() (environ.Provider, error) {
 	log.Debugf("Creating vault api client. addr=%v", os.Getenv("VAULT_ADDR"))
 
 	vcc := api.DefaultConfig()
-	if t := os.Getenv(api.EnvVaultClientTimeout); t == "" {
+	if util.IsBlank(os.Getenv(api.EnvVaultClientTimeout)) {
 		vcc.Timeout = defaultClientTimeout
 	}
-	if r := os.Getenv(api.EnvVaultMaxRetries); r == "" {
+	if util.IsBlank(os.Getenv(api.EnvVaultMaxRetries)) {
 		vcc.MaxRetries = defaultClientRetries
 	}
 
