@@ -6,6 +6,20 @@ import (
 	"github.com/hashicorp/vault/api"
 )
 
+const (
+	EnvVaultAuthMethod       = "VAULT_AUTH_METHOD"
+	EnvVaultAuthPath         = "VAULT_AUTH_PATH"
+	EnvVaultAuthData         = "VAULT_AUTH_DATA"
+	EnvVaultAppRole          = "VAULT_APP_ROLE"
+	EnvVaultAppSecret        = "VAULT_APP_SECRET"
+	EnvVaultAppJWT           = "VAULT_APP_JWT"
+	EnvVaultAWSRole          = "VAULT_AWS_ROLE"
+	EnvVaultAWSPath          = "VAULT_AWS_PATH"
+	EnvVaultKeys             = "VAULT_KV_KEYS"
+	EnvKubernetesServiceHost = "KUBERNETES_SERVICE_HOST"
+	EnvKubernetesServicePort = "KUBERNETES_SERVICE_PORT"
+)
+
 var (
 	// ErrVaultEmptyResponse is returned when vault respondes with no data
 	ErrVaultEmptyResponse = errors.New("no data returned from vault")
@@ -19,36 +33,43 @@ var (
 	ErrUnexpectedVaultResponse = errors.New("unexpected response from vault")
 
 	sensitiveEnvVars = []string{
-		"VAULT_KV_KEYS",
-		"VAULT_AUTH_DATA",
+		EnvVaultKeys,
+		EnvVaultAuthData,
+		EnvVaultAppSecret,
+		EnvVaultAppRole,
+		EnvVaultAppJWT,
 	}
 
 	// EnvVars is a map of known vonfiguration environment variables and their usage descriptions
 	EnvVars = map[string]string{
-		"VAULT_KV_KEYS": `If VAULT_KV_KEYS is set, will iterate over each key (colon separated), attempting to get the secret from Vault.
+		EnvVaultKeys: `If VAULT_KV_KEYS is set, will iterate over each key (colon separated), attempting to get the secret from Vault.
 Secrets are pulled at the optional version or latest, then injected into Environ. If running in Kubernetes,
 the Pod's ServiceAccount token will automatically be looked up and used for Vault authentication.
 e.g. VAULT_KV_KEYS=/path/to/key1[@version]:/path/to/key2[@version]:...`,
-		"VAULT_AUTH_METHOD": `Authentication method for vault. Default is "kubernetes".`,
-		"VAULT_APP_ROLE":    "App role name to use with the kubernetes authentication method.",
-		"VAULT_IAM_ROLE": `IAM role to request from vault. If returns credentials, the access key and secret key will be injected into
+		EnvVaultAuthMethod: `Authentication method for vault. Default is "kubernetes".`,
+		EnvVaultAppRole:    "Either the role id for AppRole authentication, or the role name fo Kubernetes authentication.",
+		EnvVaultAppSecret:  "The secret id for use with AppRole authentication",
+		EnvVaultAppJWT:     "The jwt for use with OIDC/JWT authentication",
+		EnvVaultAWSRole: `Name of the role to generate credentials against. If credentials are returned, the access key and secret key will be injected into
 the process environment using the standard environment variables and a credentials file will be written to
 the path from AWS_SHARED_CREDENTIALS_FILE (by default "/var/aws/credentials")`,
-		"VAULT_AWS_PATH":  `Mountpoint for the vault AWS secret engine. Defaults to "aws".`,
-		"VAULT_AUTH_PATH": "Authentication path for vault authentication - e.g. okta/login/:user. Overrides VAULT_AUTH_METHOD if set.",
-		"VAULT_AUTH_DATA": "Data payload to send with authentication request. JSON object.",
-		"VAULT_*":         "All vault client configuration environment variables are respected. More information at https://www.vaultproject.io/docs/commands/#environment-variables",
+		EnvVaultAWSPath:  `Mountpoint for the vault AWS secret engine. Defaults to "aws".`,
+		EnvVaultAuthPath: "Authentication path for vault authentication - e.g. okta/login/:user. Overrides VAULT_AUTH_METHOD if set.",
+		EnvVaultAuthData: "Data payload to send with authentication request. JSON object.",
+		"VAULT_*":        "All vault client configuration environment variables are respected. More information at https://www.vaultproject.io/docs/commands/#environment-variables",
 	}
 )
 
 // Client is an environ.Provider and github.com/hashicorp/vault/api.Client which will get the requested keys
 type Client struct {
 	*api.Client
-	AuthMethod  string `env:"VAULT_AUTH_METHOD" envDefault:"kubernetes"`
+	AuthMethod  string `env:"VAULT_AUTH_METHOD"`
 	AuthPath    string `env:"VAULT_AUTH_PATH"`
-	AuthData    string `env:"VAULT_AUTH_DATA" envDefault:"{}"`
+	AuthData    string `env:"VAULT_AUTH_DATA"`
 	AppRole     string `env:"VAULT_APP_ROLE"`
-	IamRole     string `env:"VAULT_IAM_ROLE"`
+	AppSecret   string `env:"VAULT_APP_SECRET"`
+	AppJWT      string `env:"VAULT_APP_JWT"`
+	AwsRole     string `env:"VAULT_AWS_ROLE"`
 	AwsPath     string `env:"VAULT_AWS_PATH" envDefault:"aws"`
 	AwsCredFile string `env:"AWS_SHARED_CREDENTIALS_FILE" envDefault:"/var/run/aws/credentials"`
 	Keys        KVKeys `env:"VAULT_KV_KEYS"`

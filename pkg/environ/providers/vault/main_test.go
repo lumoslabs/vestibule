@@ -1,10 +1,13 @@
 package vault
 
 import (
+	"encoding/json"
 	"fmt"
+	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
 	"os"
+	"path/filepath"
 	"strconv"
 	"strings"
 	"testing"
@@ -14,11 +17,15 @@ import (
 	"github.com/spf13/afero"
 
 	"github.com/lumoslabs/vestibule/pkg/environ"
+	"github.com/lumoslabs/vestibule/pkg/log"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
 const (
+	kvKey      = "kv/foo/bar"
+	vaultToken = "1234-5678"
+
 	vaultAuthResponse = `
   {
     "lease_duration": 100,
@@ -33,9 +40,7 @@ const (
 	vaultSecretDataResponse = `
   {
     "data": {
-      "data": {
-        "foo": "bar"
-      },
+      "data": %s,
       "metadata": {
         "version": %d
       }
@@ -52,15 +57,19 @@ const (
   }`
 )
 
-func testServer() *httptest.Server {
+func testServer(dbg bool) *httptest.Server {
 	return httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		// if testing.Verbose() {
-		// 	fmt.Printf("vault GET %s\n", r.RequestURI)
-		// }
+		if testing.Verbose() && dbg {
+			log.Debugf("mock-vault %s %s", r.Method, r.RequestURI)
+		}
 		switch {
 		default:
 			http.Error(w, `{"errors":[]}`, http.StatusNotFound)
 		case strings.HasPrefix(r.RequestURI, "/v1/auth"):
+			if testing.Verbose() && dbg {
+        data, _ := ioutil.ReadAll(r.Body)
+				log.Debugf("mock-vault\t\tdata=%s\n", string(data))
+			}
 			fmt.Fprintln(w, vaultAuthResponse)
 		case strings.HasPrefix(r.RequestURI, "/v1/kv/data"):
 			var version int
@@ -71,7 +80,17 @@ func testServer() *httptest.Server {
 				version, _ = strconv.Atoi(versions[0])
 			}
 
-			fmt.Fprintf(w, fmt.Sprintf(vaultSecretDataResponse, version))
+			n, er := strconv.Atoi(filepath.Base(r.RequestURI))
+			if er != nil {
+				n = 0
+			}
+
+			d := make(map[string]string)
+			for i := 0; i <= n; i++ {
+				d[fmt.Sprint(i)] = "data"
+			}
+			data, _ := json.Marshal(d)
+			fmt.Fprintf(w, fmt.Sprintf(vaultSecretDataResponse, string(data), version))
 		case strings.HasPrefix(r.RequestURI, "/v1/aws/sts"):
 			fmt.Fprintln(w, vaultAWSResponse)
 		}
@@ -80,38 +99,57 @@ func testServer() *httptest.Server {
 
 func TestNew(t *testing.T) {
 	tt := []struct {
-		kvKeys string
-		token  string
+		envv   map[string]string
+		method string
+		path   string
 	}{
-		{"kv/foo/bar", "1234"},
-		{"kv/foo/bar", ""},
+		{map[string]string{"VAULT_TOKEN": "1234"}, "", ""},
+		{map[string]string{EnvVaultAppRole: "test", EnvKubernetesServiceHost: "host", EnvKubernetesServicePort: "port"}, "kubernetes", "auth/kubernetes/login"},
+		{map[string]string{EnvVaultAppRole: "test", EnvVaultAppSecret: "secret"}, "approle", "auth/approle/login"},
+		{map[string]string{EnvVaultAppRole: "test", EnvVaultAppJWT: "secret"}, "jwt", "auth/jwt/login"},
+		{map[string]string{EnvVaultAppRole: "test", EnvVaultAppJWT: "secret", EnvVaultAuthPath: "my-jwt"}, "my-jwt", "auth/my-jwt/login"},
+		{map[string]string{EnvVaultAuthPath: "okta/login/foo", EnvVaultAuthData: `{"password":"password"}`}, "okta", "auth/okta/login/foo"},
 	}
 
-	ts := testServer()
-	defer ts.Close()
+	if testing.Verbose() && os.Getenv("CI_DEBUG_TRACE") == "true" {
+		log.SetLogger(log.NewDebugLogger())
+	}
 
-	os.Setenv("VAULT_ADDR", ts.URL)
+	fs = afero.NewMemMapFs()
+	currEnv := os.Environ()
+	ts := testServer(os.Getenv("CI_DEBUG_TRACE") == "true")
+	afero.WriteFile(fs, kubernetesTokenFilePath, []byte("token"), 0644)
+
 	defer func() {
-		os.Unsetenv("VAULT_ADDR")
+		ts.Close()
+		os.Clearenv()
+		log.SetLogger(log.NewNilLogger())
+		for _, item := range currEnv {
+			if parts := strings.Split(item, "="); len(parts) == 2 {
+				os.Setenv(parts[0], parts[1])
+			}
+		}
 	}()
 
-	for _, test := range tt {
-		os.Setenv("VAULT_KV_KEYS", test.kvKeys)
-		if test.token != "" {
-			os.Setenv("VAULT_TOKEN", test.token)
+	for i, test := range tt {
+		os.Clearenv()
+		os.Setenv("VAULT_ADDR", ts.URL)
+		for k, v := range test.envv {
+			os.Setenv(k, v)
 		}
 
 		c, er := New()
 		require.NoError(t, er)
 		token := c.(*Client).Token()
-		if test.token != "" {
-			assert.Equal(t, test.token, token)
+
+		if tok, ok := test.envv["VAULT_TOKEN"]; ok {
+			assert.Equalf(t, tok, token, `%d: %#v`, i, c)
 		} else {
-			assert.Equal(t, "1234-5678", token)
+			assert.Equalf(t, vaultToken, token, `%d: %#v`, i, c)
 		}
 
-		os.Unsetenv("VAULT_KV_KEYS")
-		os.Unsetenv("VAULT_TOKEN")
+		assert.Equalf(t, test.method, c.(*Client).AuthMethod, `%d: %#v`, i, c)
+		assert.Equalf(t, test.path, c.(*Client).AuthPath, `%d: %#v`, i, c)
 	}
 }
 
@@ -146,31 +184,43 @@ func TestKeyParser(t *testing.T) {
 
 func TestAddToEnviron(t *testing.T) {
 	tt := []struct {
-		keys string
-		iam  string
+		envv   map[string]string
+		envLen int
 	}{
-		{"kv/foo/bar", ""},
-		{"/kv/data/foo/bar", ""},
-		{"kv/foo/bar", "my-role"},
-		{"kv/foo/bar@2", "my-role"},
+		{map[string]string{EnvVaultKeys: kvKey + "/0"}, 1},
+		{map[string]string{EnvVaultKeys: "/" + kvKey + "/1"}, 2},
+		{map[string]string{EnvVaultKeys: kvKey + "/baz/2"}, 3},
+		{map[string]string{EnvVaultKeys: kvKey + "/3:" + kvKey + "/baz/3"}, 4},
+		{map[string]string{EnvVaultKeys: kvKey + "@2"}, 1},
+		{map[string]string{EnvVaultAWSRole: "test"}, 4},
+	}
+
+	if testing.Verbose() && os.Getenv("CI_DEBUG_TRACE") == "true" {
+		log.SetLogger(log.NewDebugLogger())
 	}
 
 	fs = afero.NewMemMapFs()
-	ts := testServer()
-	defer ts.Close()
+	currEnv := os.Environ()
+	ts := testServer(os.Getenv("CI_DEBUG_TRACE") == "true")
+	afero.WriteFile(fs, kubernetesTokenFilePath, []byte("jwt"), 0644)
 
-	os.Setenv("VAULT_ADDR", ts.URL)
 	defer func() {
-		os.Unsetenv("VAULT_ADDR")
+		ts.Close()
+		os.Clearenv()
+		log.SetLogger(log.NewNilLogger())
+		for _, item := range currEnv {
+			if parts := strings.Split(item, "="); len(parts) == 2 {
+				os.Setenv(parts[0], parts[1])
+			}
+		}
 	}()
 
-	// Prevents this from getting passed through from higher process' env.
-	os.Unsetenv("VAULT_IAM_ROLE")
-
-	for _, test := range tt {
-		os.Setenv("VAULT_KV_KEYS", test.keys)
-		if test.iam != "" {
-			os.Setenv("VAULT_IAM_ROLE", test.iam)
+	for i, test := range tt {
+		os.Clearenv()
+		os.Setenv("VAULT_ADDR", ts.URL)
+		os.Setenv(EnvVaultAuthData, "{}")
+		for k, v := range test.envv {
+			os.Setenv(k, v)
 		}
 
 		c, er := New()
@@ -178,29 +228,24 @@ func TestAddToEnviron(t *testing.T) {
 
 		e := environ.New()
 		c.AddToEnviron(e)
-		if test.iam != "" {
-			assert.Equal(t, 5, e.Len())
-		} else {
-			assert.Equal(t, 1, e.Len())
+		assert.Equalf(t, test.envLen, e.Len(), `%d: env=%v`, i, e)
+
+		if _, ok := test.envv[EnvVaultKeys]; ok {
+			val, ok := e.Load("0")
+			assert.True(t, ok)
+			assert.Equalf(t, "data", val, `%d: env=%v`, i, e)
 		}
 
-		val, ok := e.Load("foo")
-		assert.True(t, ok)
-		assert.Equal(t, "bar", val)
-
-		if test.iam != "" {
+		if _, ok := test.envv[EnvVaultAWSRole]; ok {
 			ak, ok := e.Load("AWS_ACCESS_KEY_ID")
 			assert.True(t, ok)
-			assert.Equal(t, "aws-access-key", ak)
+			assert.Equalf(t, "aws-access-key", ak, `%d: env=%v`, i, e)
 
 			content, _ := afero.ReadFile(fs, c.(*Client).AwsCredFile)
 			data, _ := ini.Load(content)
-			assert.Equal(t, "aws-access-key", data.Section("default").Key("aws_access_key_id").String())
-			assert.Equal(t, "aws-secret-key", data.Section("default").Key("aws_secret_access_key").String())
-			assert.Equal(t, "aws-session-token", data.Section("default").Key("aws_session_token").String())
+			assert.Equalf(t, "aws-access-key", data.Section("default").Key("aws_access_key_id").String(), `%d: env=%v`, i, e)
+			assert.Equalf(t, "aws-secret-key", data.Section("default").Key("aws_secret_access_key").String(), `%d: env=%v`, i, e)
+			assert.Equalf(t, "aws-session-token", data.Section("default").Key("aws_session_token").String(), `%d: env=%v`, i, e)
 		}
-
-		os.Unsetenv("VAULT_KV_KEYS")
-		os.Unsetenv("VAULT_IAM_ROLE")
 	}
 }
