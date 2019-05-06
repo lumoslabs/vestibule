@@ -33,3 +33,7 @@ func (l *zl) Debug(msg string) {
 func (l *zl) Debugf(fmt string, objs ...interface{}) {
 	l.Printf(fmt, objs...)
 }
+
+func (l *zl) IsDebug() bool {
+	return l.Logger.Debug().Enabled()
+}

@@ -77,7 +77,6 @@ func New() (environ.Provider, error) {
 		return nil, er
 	}
 
-	v.SetLoginPath()
 	if v.Token() == "" {
 		if er := v.SetVaultToken(); er != nil {
 			return nil, fmt.Errorf("vault login failed: %v", er)
@@ -88,6 +87,8 @@ func New() (environ.Provider, error) {
 
 // SetVaultToken sets the AuthMethod and AuthPath if not already set and uses those to request a session token from vault
 func (client *Client) SetVaultToken() error {
+	client.SetLoginPath()
+
 	data := make(map[string]interface{})
 	switch {
 	case !util.IsBlank(client.AppRole) && !util.IsBlank(client.AppSecret):
@@ -99,22 +100,23 @@ func (client *Client) SetVaultToken() error {
 		data["role"] = client.AppRole
 		data["jwt"] = client.AppJWT
 	case !util.IsBlank(client.AuthData):
-		log.Debugf("using auth data data=%v", client.AuthData)
 		if er := json.Unmarshal([]byte(client.AuthData), &data); er != nil {
 			return fmt.Errorf("failed to unmarshal VAULT_AUTH_DATA: %v", er)
 		}
 	default:
-		log.Debug("using k8s")
-		kjwt, er := getKubernetesSAToken()
-		if er != nil || len(kjwt) == 0 {
+		kt, er := getKubeJWT()
+		if er != nil || len(kt) == 0 {
 			return fmt.Errorf("failed to get k8s service account token: %v", er)
 		}
 		data["role"] = client.AppRole
-		data["jwt"] = string(kjwt)
+		data["jwt"] = string(kt)
 	}
 
 	client.SetToken("token")
-	log.Debugf("Requesting session token from vault. path=%s data=%#v", client.AuthPath, sanitize(data))
+	if log.IsDebug() {
+		d, _ := json.Marshal(redact(data))
+		log.Debugf("Requesting session token from vault. path=%s data=%s", client.AuthPath, string(d))
+	}
 	auth, er := client.Logical().Write(client.AuthPath, data)
 	if er != nil {
 		return er
@@ -337,7 +339,7 @@ func vaultKeyParser(s string) (interface{}, error) {
 	return keys, nil
 }
 
-func getKubernetesSAToken() ([]byte, error) {
+func getKubeJWT() ([]byte, error) {
 	if util.IsBlank(os.Getenv(EnvKubernetesServiceHost)) && util.IsBlank(os.Getenv(EnvKubernetesServicePort)) {
 		return []byte(nil), ErrNotInKubernetes
 	}
@@ -348,11 +350,15 @@ func getKubernetesSAToken() ([]byte, error) {
 	return afero.ReadFile(fs, kubernetesTokenFilePath)
 }
 
-func sanitize(sensitive map[string]interface{}) map[string]string {
+func redact(sensitive map[string]interface{}) map[string]string {
 	clean := make(map[string]string, len(sensitive))
 	for k, v := range sensitive {
-		val, _ := util.Abbreviate(fmt.Sprint(v), 4)
-		clean[k] = val
+		switch k {
+		default:
+			clean[k] = v.(string)
+		case "jwt", "secret_id", "password", "identity", "signature", "pkcs7", "token":
+			clean[k] = "[REDACTED]"
+		}
 	}
 	return clean
 }

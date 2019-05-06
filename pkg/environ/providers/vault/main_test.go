@@ -57,18 +57,18 @@ const (
   }`
 )
 
-func testServer() *httptest.Server {
+func testServer(dbg bool) *httptest.Server {
 	return httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if testing.Verbose() {
-			fmt.Printf("vault GET %s\n", r.RequestURI)
+		if testing.Verbose() && dbg {
+			log.Debugf("mock-vault %s %s", r.Method, r.RequestURI)
 		}
 		switch {
 		default:
 			http.Error(w, `{"errors":[]}`, http.StatusNotFound)
 		case strings.HasPrefix(r.RequestURI, "/v1/auth"):
-			if testing.Verbose() {
-				data, _ := ioutil.ReadAll(r.Body)
-				fmt.Printf("vault DATA %s\n", string(data))
+			if testing.Verbose() && dbg {
+        data, _ := ioutil.ReadAll(r.Body)
+				log.Debugf("mock-vault\t\tdata=%s\n", string(data))
 			}
 			fmt.Fprintln(w, vaultAuthResponse)
 		case strings.HasPrefix(r.RequestURI, "/v1/kv/data"):
@@ -103,7 +103,7 @@ func TestNew(t *testing.T) {
 		method string
 		path   string
 	}{
-		{map[string]string{"VAULT_TOKEN": "1234"}, "kubernetes", "auth/kubernetes/login"},
+		{map[string]string{"VAULT_TOKEN": "1234"}, "", ""},
 		{map[string]string{EnvVaultAppRole: "test", EnvKubernetesServiceHost: "host", EnvKubernetesServicePort: "port"}, "kubernetes", "auth/kubernetes/login"},
 		{map[string]string{EnvVaultAppRole: "test", EnvVaultAppSecret: "secret"}, "approle", "auth/approle/login"},
 		{map[string]string{EnvVaultAppRole: "test", EnvVaultAppJWT: "secret"}, "jwt", "auth/jwt/login"},
@@ -111,13 +111,13 @@ func TestNew(t *testing.T) {
 		{map[string]string{EnvVaultAuthPath: "okta/login/foo", EnvVaultAuthData: `{"password":"password"}`}, "okta", "auth/okta/login/foo"},
 	}
 
-	// if testing.Verbose() {
-	// 	log.SetLogger(log.NewDebugLogger())
-	// }
+	if testing.Verbose() && os.Getenv("CI_DEBUG_TRACE") == "true" {
+		log.SetLogger(log.NewDebugLogger())
+	}
 
 	fs = afero.NewMemMapFs()
 	currEnv := os.Environ()
-	ts := testServer()
+	ts := testServer(os.Getenv("CI_DEBUG_TRACE") == "true")
 	afero.WriteFile(fs, kubernetesTokenFilePath, []byte("token"), 0644)
 
 	defer func() {
@@ -195,13 +195,13 @@ func TestAddToEnviron(t *testing.T) {
 		{map[string]string{EnvVaultIAMRole: "test"}, 4},
 	}
 
-	// if testing.Verbose() {
-	// 	log.SetLogger(log.NewDebugLogger())
-	// }
+	if testing.Verbose() && os.Getenv("CI_DEBUG_TRACE") == "true" {
+		log.SetLogger(log.NewDebugLogger())
+	}
 
 	fs = afero.NewMemMapFs()
 	currEnv := os.Environ()
-	ts := testServer()
+	ts := testServer(os.Getenv("CI_DEBUG_TRACE") == "true")
 	afero.WriteFile(fs, kubernetesTokenFilePath, []byte("jwt"), 0644)
 
 	defer func() {
