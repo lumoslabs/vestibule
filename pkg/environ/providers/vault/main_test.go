@@ -192,7 +192,7 @@ func TestAddToEnviron(t *testing.T) {
 		{map[string]string{EnvVaultKeys: kvKey + "/baz/2"}, 3},
 		{map[string]string{EnvVaultKeys: kvKey + "/3:" + kvKey + "/baz/3"}, 4},
 		{map[string]string{EnvVaultKeys: kvKey + "@2"}, 1},
-		{map[string]string{EnvVaultIAMRole: "test"}, 4},
+		{map[string]string{EnvVaultAWSRole: "test"}, 4},
 	}
 
 	if testing.Verbose() && os.Getenv("CI_DEBUG_TRACE") == "true" {
@@ -236,7 +236,7 @@ func TestAddToEnviron(t *testing.T) {
 			assert.Equalf(t, "data", val, `%d: env=%v`, i, e)
 		}
 
-		if _, ok := test.envv[EnvVaultIAMRole]; ok {
+		if _, ok := test.envv[EnvVaultAWSRole]; ok {
 			ak, ok := e.Load("AWS_ACCESS_KEY_ID")
 			assert.True(t, ok)
 			assert.Equalf(t, "aws-access-key", ak, `%d: env=%v`, i, e)

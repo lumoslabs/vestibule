@@ -189,13 +189,13 @@ func (client *Client) AddToEnviron(env *environ.Environ) error {
 		}(key)
 	}
 
-	if client.IamRole != "" {
+	if !util.IsBlank(client.AwsRole) {
 		wg.Add(1)
 		go func() {
 			defer wg.Done()
 			// attempt to get aws creds from vault
 			// only looks for sts roles
-			reqPath := strings.TrimSpace(strings.Trim(client.AwsPath, "/")) + "/sts/" + strings.TrimSpace(client.IamRole)
+			reqPath := strings.TrimSpace(strings.Trim(client.AwsPath, "/")) + "/sts/" + strings.TrimSpace(client.AwsRole)
 			if creds, er := client.getAwsCreds(reqPath); er == nil {
 
 				// attempt to write received creds to file

@@ -13,7 +13,7 @@ const (
 	EnvVaultAppRole          = "VAULT_APP_ROLE"
 	EnvVaultAppSecret        = "VAULT_APP_SECRET"
 	EnvVaultAppJWT           = "VAULT_APP_JWT"
-	EnvVaultIAMRole          = "VAULT_IAM_ROLE"
+	EnvVaultAWSRole          = "VAULT_AWS_ROLE"
 	EnvVaultAWSPath          = "VAULT_AWS_PATH"
 	EnvVaultKeys             = "VAULT_KV_KEYS"
 	EnvKubernetesServiceHost = "KUBERNETES_SERVICE_HOST"
@@ -50,7 +50,7 @@ e.g. VAULT_KV_KEYS=/path/to/key1[@version]:/path/to/key2[@version]:...`,
 		EnvVaultAppRole:    "Either the role id for AppRole authentication, or the role name fo Kubernetes authentication.",
 		EnvVaultAppSecret:  "The secret id for use with AppRole authentication",
 		EnvVaultAppJWT:     "The jwt for use with OIDC/JWT authentication",
-		EnvVaultIAMRole: `IAM role to request from vault. If returns credentials, the access key and secret key will be injected into
+		EnvVaultAWSRole: `Name of the role to generate credentials against. If credentials are returned, the access key and secret key will be injected into
 the process environment using the standard environment variables and a credentials file will be written to
 the path from AWS_SHARED_CREDENTIALS_FILE (by default "/var/aws/credentials")`,
 		EnvVaultAWSPath:  `Mountpoint for the vault AWS secret engine. Defaults to "aws".`,
@@ -69,7 +69,7 @@ type Client struct {
 	AppRole     string `env:"VAULT_APP_ROLE"`
 	AppSecret   string `env:"VAULT_APP_SECRET"`
 	AppJWT      string `env:"VAULT_APP_JWT"`
-	IamRole     string `env:"VAULT_IAM_ROLE"`
+	AwsRole     string `env:"VAULT_AWS_ROLE"`
 	AwsPath     string `env:"VAULT_AWS_PATH" envDefault:"aws"`
 	AwsCredFile string `env:"AWS_SHARED_CREDENTIALS_FILE" envDefault:"/var/run/aws/credentials"`
 	Keys        KVKeys `env:"VAULT_KV_KEYS"`
