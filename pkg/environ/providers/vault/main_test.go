@@ -138,10 +138,8 @@ func TestNew(t *testing.T) {
 		log.SetLogger(log.NewDebugLogger())
 	}
 
-	fs = afero.NewMemMapFs()
 	currEnv := os.Environ()
 	ts := testServer(os.Getenv("CI_DEBUG_TRACE") == "true")
-	afero.WriteFile(fs, kubernetesTokenFilePath, []byte("token"), 0644)
 
 	defer func() {
 		ts.Close()
@@ -156,6 +154,9 @@ func TestNew(t *testing.T) {
 
 	for i, test := range tt {
 		os.Clearenv()
+		fs = afero.NewMemMapFs()
+		afero.WriteFile(fs, kubernetesTokenFilePath, []byte("jwt"), 0644)
+
 		os.Setenv("VAULT_ADDR", ts.URL)
 		for k, v := range test.envv {
 			os.Setenv(k, v)
@@ -215,7 +216,7 @@ func TestAddToEnviron(t *testing.T) {
 		{map[string]string{EnvVaultKeys: kvKey + "/baz/2"}, 3},
 		{map[string]string{EnvVaultKeys: kvKey + "/3:" + kvKey + "/baz/3"}, 4},
 		{map[string]string{EnvVaultKeys: kvKey + "@2"}, 1},
-		{map[string]string{EnvVaultAWSRole: "test"}, 4},
+		{map[string]string{EnvVaultAwsRole: "test"}, 4},
 		{map[string]string{EnvVaultGcpRole: "test"}, 1},
 		{map[string]string{EnvVaultGcpRole: "fail"}, 1},
 	}
@@ -224,10 +225,8 @@ func TestAddToEnviron(t *testing.T) {
 		log.SetLogger(log.NewDebugLogger())
 	}
 
-	fs = afero.NewMemMapFs()
 	currEnv := os.Environ()
 	ts := testServer(os.Getenv("CI_DEBUG_TRACE") == "true")
-	afero.WriteFile(fs, kubernetesTokenFilePath, []byte("jwt"), 0644)
 
 	defer func() {
 		ts.Close()
@@ -242,6 +241,9 @@ func TestAddToEnviron(t *testing.T) {
 
 	for i, test := range tt {
 		os.Clearenv()
+		fs = afero.NewMemMapFs()
+		afero.WriteFile(fs, kubernetesTokenFilePath, []byte("jwt"), 0644)
+
 		os.Setenv("VAULT_ADDR", ts.URL)
 		os.Setenv(EnvVaultAuthData, "{}")
 		for k, v := range test.envv {
@@ -261,7 +263,7 @@ func TestAddToEnviron(t *testing.T) {
 			assert.Equalf(t, "data", val, `%d: vars=%v env=%v`, i, test.envv, e)
 		}
 
-		if _, ok := test.envv[EnvVaultAWSRole]; ok {
+		if _, ok := test.envv[EnvVaultAwsRole]; ok {
 			ak, ok := e.Load("AWS_ACCESS_KEY_ID")
 			assert.True(t, ok)
 			assert.Equalf(t, "aws-access-key", ak, `%d: vars=%v env=%v`, i, test.envv, e)
@@ -281,7 +283,9 @@ func TestAddToEnviron(t *testing.T) {
 			require.NoErrorf(t, er, `%d: vars=%v env=%v`, i, test.envv, e)
 			var data map[string]string
 			if role == "fail" {
-				assert.Error(t, json.Unmarshal(content, &data), `%d: vars=%v env=%v content=%s`, i, test.envv, e, string(content))
+				er := json.Unmarshal(content, &data)
+				assert.Error(t, er, `%d: vars=%v env=%v content=%s`, i, test.envv, e, string(content))
+				t.Logf("expected gcp error: %+v", er)
 			} else {
 				require.NoErrorf(t, json.Unmarshal(content, &data), `%d: vars=%v env=%v content=%s`, i, test.envv, e, string(content))
 

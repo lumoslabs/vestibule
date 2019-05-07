@@ -78,3 +78,19 @@ _Ordered oldest -> newest_
 * Default path for aws credentials file is `/var/run/aws/credentials`
 * Case of variable names is configurable, defaults to upcasing them
 * Add verbose logging for `bule`
+
+## v1.1.2
+
+* Pass through timeouts to the vault client
+
+## v1.2.0
+
+* Refactor vault provider
+  * Handle setting defaults on the vault client better
+  * Better logging with redacting sensitive items
+  * Better tests
+* Add first class support for Vault jwt login
+* Add first class support for Vault approle login
+* VAULT_IAM_* -> VAULT_AWS_*
+* Add support for generating GCP service account key
+* Add homebrew release

@@ -196,31 +196,24 @@ func (client *Client) AddToEnviron(env *environ.Environ) error {
 			defer wg.Done()
 			// attempt to get aws creds from vault
 			// only looks for sts roles
-			reqPath := strings.TrimSpace(strings.Trim(client.AwsPath, "/")) + "/sts/" + strings.TrimSpace(client.AwsRole)
-			if creds, er := client.getAwsCreds(reqPath); er == nil {
-
-				// attempt to write received creds to file
-				if er := fs.MkdirAll(filepath.Dir(client.AwsCredFile), 0755); er == nil {
-					if f, er := fs.Create(client.AwsCredFile); er == nil {
-						content := ini.Empty()
-						section, _ := content.NewSection("default")
-						for key, value := range creds {
-							section.NewKey(strings.ToLower(key), value)
-						}
-						buf := new(bytes.Buffer)
-						content.WriteTo(buf)
-						f.Write(buf.Bytes())
-						f.Close()
-						creds["AWS_SHARED_CREDENTIALS_FILE"] = client.AwsCredFile
-					} else {
-						log.Debugf("Failed writing shared aws credentials file. file=%s err=%v", client.AwsCredFile, er)
-					}
-				}
-
-				env.SafeMerge(creds)
-			} else {
-				log.Debugf("Failed to get aws creds from vault. path=%s err=%v", reqPath, er)
+			path := strings.TrimSpace(strings.Trim(client.AwsPath, "/")) + "/sts/" + strings.TrimSpace(client.AwsRole)
+			creds, er := client.getAwsCreds(path)
+			if er != nil {
+				log.Debugf("Failed to get aws creds from vault. path=%s err=%v", path, er)
+				return
 			}
+
+			if er := client.writeAwsSharedFile(
+				creds[EnvAwsAccessKeyId],
+				creds[EnvAwsSecretAccessKey],
+				creds[EnvAwsSessionToken],
+			); er != nil {
+				log.Infof("Failed to write aws shared credentials file. file=%s err=%+v", client.AwsCredFile, er)
+				return
+			}
+
+			creds[EnvAwsSharedCredFile] = client.AwsCredFile
+			env.SafeMerge(creds)
 		}()
 	}
 
@@ -229,43 +222,26 @@ func (client *Client) AddToEnviron(env *environ.Environ) error {
 		go func() {
 			defer wg.Done()
 
-			switch client.GcpCredType {
-			default:
+			if client.GcpCredType != "key" && client.GcpCredType != "token" {
 				return
-			case "key", "token":
-				path := "gcp/" + client.GcpCredType + "/" + client.GcpRole
-				log.Debugf("Requesting GCP credentials from vault. path=%s", path)
-				resp, er := client.Logical().Read(path)
-				if er != nil || resp == nil {
-					log.Infof("Failed to get GCP credentials. err=%v", er)
-				}
+			}
 
-				gcpCreds := make(map[string]string, len(resp.Data))
-				for key, value := range resp.Data {
-					if v, ok := value.(string); ok {
-						gcpCreds[key] = v
-					}
-				}
+			path := strings.TrimSpace(strings.Trim(client.GcpPath, "/")) + "/" + client.GcpCredType + "/" + strings.TrimSpace(client.GcpRole)
+			creds, er := client.getGCPCreds(path)
+			if er != nil {
+				log.Infof("Failed to get gcp credentials from vault. path=%s err=%+v", path, er)
+				return
+			}
 
-				if client.GcpCredType == "token" {
-					env.SafeMerge(map[string]string{EnvGoogleToken: gcpCreds["token"]})
-				} else {
-					if er := fs.MkdirAll(filepath.Dir(client.GcpCredFile), 0755); er == nil {
-						if f, er := fs.Create(client.GcpCredFile); er == nil {
-							if pkd, er := base64.StdEncoding.DecodeString(gcpCreds["private_key_data"]); er == nil {
-								f.Write([]byte(pkd))
-								f.Close()
-								env.SafeMerge(map[string]string{EnvGoogleCredFile: client.GcpCredFile})
-							} else {
-								log.Infof("Failed to base64 decode gcp private key data. err=%v", er)
-							}
-						} else {
-							log.Infof("Failed writing to gcp cred file. file=%s err=%v", client.GcpCredFile, er)
-						}
-					} else {
-						log.Infof("Failed creating gcp cred file dir. path=%s err=%v", filepath.Dir(client.GcpCredFile), er)
-					}
+			switch client.GcpCredType {
+			case "token":
+				env.SafeMerge(map[string]string{EnvGoogleToken: creds["token"]})
+			case "key":
+				if er := client.writeGCPKeyFile(creds["private_key_data"]); er != nil {
+					log.Infof("Failed to write gcp credentials file. path=%s err=%+v", client.GcpCredFile, er)
+					return
 				}
+				env.SafeMerge(map[string]string{EnvGoogleCredFile: client.GcpCredFile})
 			}
 		}()
 	}
@@ -355,10 +331,93 @@ func (client *Client) getAwsCreds(path string) (map[string]string, error) {
 	}
 
 	return map[string]string{
-		"AWS_ACCESS_KEY_ID":     data["access_key"],
-		"AWS_SECRET_ACCESS_KEY": data["secret_key"],
-		"AWS_SESSION_TOKEN":     data["security_token"],
+		EnvAwsAccessKeyId:     data["access_key"],
+		EnvAwsSecretAccessKey: data["secret_key"],
+		EnvAwsSessionToken:    data["security_token"],
 	}, nil
+}
+
+func (client *Client) writeAwsSharedFile(accessKey, secretKey, sessionToken string) error {
+	var file afero.File
+	var content *ini.File
+
+	defer func() {
+		if file != nil {
+			file.Close()
+		}
+	}()
+
+	content, er := ini.Load(client.AwsCredFile)
+	if er != nil {
+		content = ini.Empty()
+	}
+
+	section, _ := content.NewSection(client.AwsProfile)
+	section.NewKey(strings.ToLower(EnvAwsAccessKeyId), accessKey)
+	section.NewKey(strings.ToLower(EnvAwsSecretAccessKey), secretKey)
+	if sessionToken != "" {
+		section.NewKey(strings.ToLower(EnvAwsSessionToken), sessionToken)
+	}
+	buf := new(bytes.Buffer)
+	content.WriteTo(buf)
+
+	if er := fs.MkdirAll(filepath.Dir(client.AwsCredFile), 0755); er != nil {
+		return er
+	}
+
+	f, er := fs.Open(client.AwsCredFile)
+	if er != nil {
+		f, er = fs.Create(client.AwsCredFile)
+		if er != nil {
+			return er
+		}
+	}
+
+	f.Write(buf.Bytes())
+	f.Close()
+	return nil
+}
+
+func (client *Client) getGCPCreds(path string) (map[string]string, error) {
+	log.Debugf("Requesting GCP credentials from vault. path=%s", path)
+	resp, er := client.Logical().Read(path)
+	if er != nil {
+		return map[string]string(nil), er
+	}
+	if resp == nil {
+		return map[string]string(nil), ErrVaultEmptyResponse
+	}
+
+	data := make(map[string]string, len(resp.Data))
+	for key, value := range resp.Data {
+		if v, ok := value.(string); ok {
+			data[key] = v
+		}
+	}
+
+	return data, nil
+}
+
+func (client *Client) writeGCPKeyFile(encoded string) error {
+	creds, er := base64.StdEncoding.DecodeString(encoded)
+	if er != nil {
+		return er
+	}
+
+	if er := fs.MkdirAll(filepath.Dir(client.GcpCredFile), 0755); er != nil {
+		return er
+	}
+
+	f, er := fs.Open(client.GcpCredFile)
+	if er != nil {
+		f, er = fs.Create(client.GcpCredFile)
+		if er != nil {
+			return er
+		}
+	}
+
+	f.Write([]byte(creds))
+	return f.Close()
 }
 
 func vaultKeyParser(s string) (interface{}, error) {

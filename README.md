@@ -45,7 +45,7 @@ The handy Makefile here provides targets:
           vest 1000:1 id
 
       Environment Variables:
-
+      
         VEST_DEBUG
           Enable debug logging.
 
@@ -54,7 +54,8 @@ The handy Makefile here provides targets:
           enabled. Available providers: [dotenv ejson vault sops]
 
         VEST_UPCASE_VAR_NAMES
-          Upcase environment variable names gathered from secret providers.
+          Upcase environment variable names gathered from secret providers. Default:
+          true
 
         VEST_USER
           The user [and group] to run the command as. Overrides commandline if set.
@@ -63,13 +64,31 @@ The handy Makefile here provides targets:
         VEST_VERBOSE
           Enable verbose logging.
 
+        AWS_PROFILE
+          AWS profile to use in the shared credentials file. Defaults to "default"
+
+        AWS_SHARED_CREDENTIALS_FILE
+          Path to the AWS shared credentials file to write credentials to. Defaults
+          to "/var/run/aws/credentials"
+
+        GOOGLE_CREDENTIALS_FILE
+          Path to the GCP service account credentials file to create. Defaults to
+          "/var/run/gcp/creds.json"
+
         VAULT_*
           All vault client configuration environment variables are respected. More
           information at
           https://www.vaultproject.io/docs/commands/#environment-variables
 
+        VAULT_APP_JWT
+          The jwt for use with OIDC/JWT authentication
+
         VAULT_APP_ROLE
-          App role name to use with the kubernetes authentication method.
+          Either the role id for AppRole authentication, or the role name fo
+          Kubernetes authentication.
+
+        VAULT_APP_SECRET
+          The secret id for use with AppRole authentication
 
         VAULT_AUTH_DATA
           Data payload to send with authentication request. JSON object.
@@ -84,12 +103,22 @@ The handy Makefile here provides targets:
         VAULT_AWS_PATH
           Mountpoint for the vault AWS secret engine. Defaults to "aws".
 
-        VAULT_IAM_ROLE
-          IAM role to request from vault. If returns credentials, the access key and
-          secret key will be injected into the process environment using the
-          standard environment variables and a credentials file will be written to
-          the path from AWS_SHARED_CREDENTIALS_FILE (by default
-          "/var/aws/credentials")
+        VAULT_AWS_ROLE
+          Name of the role to generate credentials against. If credentials are
+          returned, the access key and secret key will be injected into the process
+          environment using the standard environment variables and a credentials
+          file will be written to the path from AWS_SHARED_CREDENTIALS_FILE (by
+          default "/var/run/aws/credentials")
+
+        VAULT_GCP_CRED_TYPE
+          GCP credential type to generate. Defaults to key. Accepted values are
+          [token key].
+
+        VAULT_GCP_PATH
+          Mountpoint for the vault GCP secret engine. Defaults to "gcp".
+
+        VAULT_GCP_ROLE
+          Name of the GCP role in vault to generate credentials against.
 
         VAULT_KV_KEYS
           If VAULT_KV_KEYS is set, will iterate over each key (colon separated),
