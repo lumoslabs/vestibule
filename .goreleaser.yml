@@ -29,6 +29,15 @@ changelog:
       - "^test:"
 release:
   prerelease: auto
+
+brew:
+  github:
+    owner: lumoslabs
+    name: homebrew-vestibule
+  test: |
+    system "#{bin}/vest --version"
+    system "#{bin}/bule --version"
+
 dockers:
   - dockerfile: docker/alpine/Dockerfile
     binaries: [bule, vest]
