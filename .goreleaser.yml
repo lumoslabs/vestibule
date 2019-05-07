@@ -9,14 +9,14 @@ builds:
     binary: bule
     asmflags: ["all=-trimpath={{.Env.PWD}}"]
     gcflags: ["all=-trimpath={{.Env.PWD}}"]
-archive:
-  files: ["none*"]
-  replacements:
-    darwin: Darwin
-    linux: Linux
-    windows: Windows
-    386: i386
-    amd64: x86_64
+archives:
+  - files: ["none*"]
+    replacements:
+      darwin: Darwin
+      linux: Linux
+      windows: Windows
+      386: i386
+      amd64: x86_64
 checksum:
   name_template: "{{ .ProjectName }}_checksums.txt"
 snapshot:
@@ -29,6 +29,18 @@ changelog:
       - "^test:"
 release:
   prerelease: auto
+
+brew:
+  skip_upload: auto
+  github:
+    owner: lumoslabs
+    name: homebrew-vestibule
+  description: "Gather secrets from various backends and inject them into the process environment"
+  homepage: "https://github.com/lumoslabs/vestibule"
+  test: |
+    system "#{bin}/vest --version"
+    system "#{bin}/bule --version"
+
 dockers:
   - dockerfile: docker/alpine/Dockerfile
     binaries: [bule, vest]
