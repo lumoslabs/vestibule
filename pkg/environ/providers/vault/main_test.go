@@ -55,6 +55,23 @@ const (
       "security_token": "aws-session-token"
     }
   }`
+
+	// {"private_key":"private-key","private_key_id":"private-key-id"}
+	vaultGcpKeyResponse = `
+    {
+      "data": {
+        "private_key_data": "eyJwcml2YXRlX2tleSI6InByaXZhdGUta2V5IiwicHJpdmF0ZV9rZXlfaWQiOiJwcml2YXRlLWtleS1pZCJ9Cg=="
+      }
+    }
+  `
+
+	vaultGcpKeyResponseFail = `
+    {
+      "data": {
+        "private_key_data": ""
+      }
+    }
+  `
 )
 
 func testServer(dbg bool) *httptest.Server {
@@ -67,7 +84,7 @@ func testServer(dbg bool) *httptest.Server {
 			http.Error(w, `{"errors":[]}`, http.StatusNotFound)
 		case strings.HasPrefix(r.RequestURI, "/v1/auth"):
 			if testing.Verbose() && dbg {
-        data, _ := ioutil.ReadAll(r.Body)
+				data, _ := ioutil.ReadAll(r.Body)
 				log.Debugf("mock-vault\t\tdata=%s\n", string(data))
 			}
 			fmt.Fprintln(w, vaultAuthResponse)
@@ -93,6 +110,12 @@ func testServer(dbg bool) *httptest.Server {
 			fmt.Fprintf(w, fmt.Sprintf(vaultSecretDataResponse, string(data), version))
 		case strings.HasPrefix(r.RequestURI, "/v1/aws/sts"):
 			fmt.Fprintln(w, vaultAWSResponse)
+		case strings.HasPrefix(r.RequestURI, "/v1/gcp/key"):
+			if strings.Contains(r.RequestURI, "fail") {
+				fmt.Fprintln(w, vaultGcpKeyResponseFail)
+			} else {
+				fmt.Fprintln(w, vaultGcpKeyResponse)
+			}
 		}
 	}))
 }
@@ -193,6 +216,8 @@ func TestAddToEnviron(t *testing.T) {
 		{map[string]string{EnvVaultKeys: kvKey + "/3:" + kvKey + "/baz/3"}, 4},
 		{map[string]string{EnvVaultKeys: kvKey + "@2"}, 1},
 		{map[string]string{EnvVaultAWSRole: "test"}, 4},
+		{map[string]string{EnvVaultGcpRole: "test"}, 1},
+		{map[string]string{EnvVaultGcpRole: "fail"}, 1},
 	}
 
 	if testing.Verbose() && os.Getenv("CI_DEBUG_TRACE") == "true" {
@@ -228,24 +253,41 @@ func TestAddToEnviron(t *testing.T) {
 
 		e := environ.New()
 		c.AddToEnviron(e)
-		assert.Equalf(t, test.envLen, e.Len(), `%d: env=%v`, i, e)
+		assert.Equalf(t, test.envLen, e.Len(), `%d: vars=%v env=%v`, i, test.envv, e)
 
 		if _, ok := test.envv[EnvVaultKeys]; ok {
 			val, ok := e.Load("0")
 			assert.True(t, ok)
-			assert.Equalf(t, "data", val, `%d: env=%v`, i, e)
+			assert.Equalf(t, "data", val, `%d: vars=%v env=%v`, i, test.envv, e)
 		}
 
 		if _, ok := test.envv[EnvVaultAWSRole]; ok {
 			ak, ok := e.Load("AWS_ACCESS_KEY_ID")
 			assert.True(t, ok)
-			assert.Equalf(t, "aws-access-key", ak, `%d: env=%v`, i, e)
+			assert.Equalf(t, "aws-access-key", ak, `%d: vars=%v env=%v`, i, test.envv, e)
 
-			content, _ := afero.ReadFile(fs, c.(*Client).AwsCredFile)
-			data, _ := ini.Load(content)
-			assert.Equalf(t, "aws-access-key", data.Section("default").Key("aws_access_key_id").String(), `%d: env=%v`, i, e)
-			assert.Equalf(t, "aws-secret-key", data.Section("default").Key("aws_secret_access_key").String(), `%d: env=%v`, i, e)
-			assert.Equalf(t, "aws-session-token", data.Section("default").Key("aws_session_token").String(), `%d: env=%v`, i, e)
+			content, er := afero.ReadFile(fs, c.(*Client).AwsCredFile)
+			require.NoErrorf(t, er, `%d: vars=%v env=%v`, i, test.envv, e)
+			data, er := ini.Load(content)
+			require.NoErrorf(t, er, `%d: vars=%v env=%v`, i, test.envv, e)
+
+			assert.Equalf(t, "aws-access-key", data.Section("default").Key("aws_access_key_id").String(), `%d: vars=%v env=%v`, i, test.envv, e)
+			assert.Equalf(t, "aws-secret-key", data.Section("default").Key("aws_secret_access_key").String(), `%d: vars=%v env=%v`, i, test.envv, e)
+			assert.Equalf(t, "aws-session-token", data.Section("default").Key("aws_session_token").String(), `%d: vars=%v env=%v`, i, test.envv, e)
+		}
+
+		if role, ok := test.envv[EnvVaultGcpRole]; ok {
+			content, er := afero.ReadFile(fs, c.(*Client).GcpCredFile)
+			require.NoErrorf(t, er, `%d: vars=%v env=%v`, i, test.envv, e)
+			var data map[string]string
+			if role == "fail" {
+				assert.Error(t, json.Unmarshal(content, &data), `%d: vars=%v env=%v content=%s`, i, test.envv, e, string(content))
+			} else {
+				require.NoErrorf(t, json.Unmarshal(content, &data), `%d: vars=%v env=%v content=%s`, i, test.envv, e, string(content))
+
+				assert.Equalf(t, "private-key", data["private_key"], `%d: vars=%v env=%v`, i, test.envv, e)
+				assert.Equalf(t, "private-key-id", data["private_key_id"], `%d: vars=%v env=%v`, i, test.envv, e)
+			}
 		}
 	}
 }

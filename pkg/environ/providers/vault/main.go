@@ -2,6 +2,7 @@ package vault
 
 import (
 	"bytes"
+	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"os"
@@ -219,6 +220,52 @@ func (client *Client) AddToEnviron(env *environ.Environ) error {
 				env.SafeMerge(creds)
 			} else {
 				log.Debugf("Failed to get aws creds from vault. path=%s err=%v", reqPath, er)
+			}
+		}()
+	}
+
+	if !util.IsBlank(client.GcpRole) {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+
+			switch client.GcpCredType {
+			default:
+				return
+			case "key", "token":
+				path := "gcp/" + client.GcpCredType + "/" + client.GcpRole
+				log.Debugf("Requesting GCP credentials from vault. path=%s", path)
+				resp, er := client.Logical().Read(path)
+				if er != nil || resp == nil {
+					log.Infof("Failed to get GCP credentials. err=%v", er)
+				}
+
+				gcpCreds := make(map[string]string, len(resp.Data))
+				for key, value := range resp.Data {
+					if v, ok := value.(string); ok {
+						gcpCreds[key] = v
+					}
+				}
+
+				if client.GcpCredType == "token" {
+					env.SafeMerge(map[string]string{EnvGoogleToken: gcpCreds["token"]})
+				} else {
+					if er := fs.MkdirAll(filepath.Dir(client.GcpCredFile), 0755); er == nil {
+						if f, er := fs.Create(client.GcpCredFile); er == nil {
+							if pkd, er := base64.StdEncoding.DecodeString(gcpCreds["private_key_data"]); er == nil {
+								f.Write([]byte(pkd))
+								f.Close()
+								env.SafeMerge(map[string]string{EnvGoogleCredFile: client.GcpCredFile})
+							} else {
+								log.Infof("Failed to base64 decode gcp private key data. err=%v", er)
+							}
+						} else {
+							log.Infof("Failed writing to gcp cred file. file=%s err=%v", client.GcpCredFile, er)
+						}
+					} else {
+						log.Infof("Failed creating gcp cred file dir. path=%s err=%v", filepath.Dir(client.GcpCredFile), er)
+					}
+				}
 			}
 		}()
 	}

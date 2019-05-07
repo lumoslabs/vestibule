@@ -15,7 +15,11 @@ const (
 	EnvVaultAppJWT           = "VAULT_APP_JWT"
 	EnvVaultAWSRole          = "VAULT_AWS_ROLE"
 	EnvVaultAWSPath          = "VAULT_AWS_PATH"
+	EnvVaultGcpRole          = "VAULT_GCP_ROLE"
+	EnvVaultGcpCredType      = "VAULT_GCP_CRED_TYPE"
 	EnvVaultKeys             = "VAULT_KV_KEYS"
+	EnvGoogleCredFile        = "GOOGLE_CREDENTIALS_FILE"
+	EnvGoogleToken           = "GCP_TOKEN"
 	EnvKubernetesServiceHost = "KUBERNETES_SERVICE_HOST"
 	EnvKubernetesServicePort = "KUBERNETES_SERVICE_PORT"
 )
@@ -53,10 +57,12 @@ e.g. VAULT_KV_KEYS=/path/to/key1[@version]:/path/to/key2[@version]:...`,
 		EnvVaultAWSRole: `Name of the role to generate credentials against. If credentials are returned, the access key and secret key will be injected into
 the process environment using the standard environment variables and a credentials file will be written to
 the path from AWS_SHARED_CREDENTIALS_FILE (by default "/var/aws/credentials")`,
-		EnvVaultAWSPath:  `Mountpoint for the vault AWS secret engine. Defaults to "aws".`,
-		EnvVaultAuthPath: "Authentication path for vault authentication - e.g. okta/login/:user. Overrides VAULT_AUTH_METHOD if set.",
-		EnvVaultAuthData: "Data payload to send with authentication request. JSON object.",
-		"VAULT_*":        "All vault client configuration environment variables are respected. More information at https://www.vaultproject.io/docs/commands/#environment-variables",
+		EnvVaultAWSPath:     `Mountpoint for the vault AWS secret engine. Defaults to "aws".`,
+		EnvVaultAuthPath:    "Authentication path for vault authentication - e.g. okta/login/:user. Overrides VAULT_AUTH_METHOD if set.",
+		EnvVaultAuthData:    "Data payload to send with authentication request. JSON object.",
+		"VAULT_*":           "All vault client configuration environment variables are respected. More information at https://www.vaultproject.io/docs/commands/#environment-variables",
+		EnvVaultGcpRole:     "Name of the GCP role in vault to generate credentials against.",
+		EnvVaultGcpCredType: "GCP credential type to generate. Defaults to key. Accepted values are [token key]",
 	}
 )
 
@@ -72,6 +78,9 @@ type Client struct {
 	AwsRole     string `env:"VAULT_AWS_ROLE"`
 	AwsPath     string `env:"VAULT_AWS_PATH" envDefault:"aws"`
 	AwsCredFile string `env:"AWS_SHARED_CREDENTIALS_FILE" envDefault:"/var/run/aws/credentials"`
+	GcpRole     string `env:"VAULT_GCP_ROLE"`
+	GcpCredType string `env:"VAULT_GCP_CRED_TYPE" envDefault:"key"`
+	GcpCredFile string `env:"GOOGLE_CREDENTIALS_FILE" envDefault:"/var/run/gcp/creds.json"`
 	Keys        KVKeys `env:"VAULT_KV_KEYS"`
 }
 
