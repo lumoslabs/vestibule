@@ -35,6 +35,8 @@ brew:
   github:
     owner: lumoslabs
     name: homebrew-vestibule
+  
+  folder: Formula
   description: "Gather secrets from various backends and inject them into the process environment"
   homepage: "https://github.com/lumoslabs/vestibule"
   test: |
