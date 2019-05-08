@@ -88,7 +88,11 @@ func testServer(dbg bool) *httptest.Server {
 				log.Debugf("mock-vault\t\tdata=%s\n", string(data))
 			}
 			fmt.Fprintln(w, vaultAuthResponse)
-		case strings.HasPrefix(r.RequestURI, "/v1/kv/data"):
+		case strings.HasPrefix(r.RequestURI, "/v1/secrets/data"):
+			if strings.Contains(r.RequestURI, VaultKeysSeparator) {
+				http.Error(w, `{"errors":["kv keys not split"]}`, http.StatusNotFound)
+				return
+			}
 			var version int
 			versions, ok := r.URL.Query()["version"]
 			if !ok || len(versions[0]) < 1 {
@@ -211,11 +215,11 @@ func TestAddToEnviron(t *testing.T) {
 		envv   map[string]string
 		envLen int
 	}{
-		{map[string]string{EnvVaultKeys: kvKey + "/0"}, 1},
-		{map[string]string{EnvVaultKeys: "/" + kvKey + "/1"}, 2},
-		{map[string]string{EnvVaultKeys: kvKey + "/baz/2"}, 3},
-		{map[string]string{EnvVaultKeys: kvKey + "/3:" + kvKey + "/baz/3"}, 4},
-		{map[string]string{EnvVaultKeys: kvKey + "@2"}, 1},
+		{map[string]string{EnvVaultKeys: "secrets/foo/bar/0"}, 1},
+		{map[string]string{EnvVaultKeys: "secrets/foo/bar/1"}, 2},
+		{map[string]string{EnvVaultKeys: "secrets/foo/bar/baz/2"}, 3},
+		{map[string]string{EnvVaultKeys: "secrets/foo/bar/3:/secrets/foo/bar/baz/3"}, 4},
+		{map[string]string{EnvVaultKeys: "secrets/foo/bar@2"}, 1},
 		{map[string]string{EnvVaultAwsRole: "test"}, 4},
 		{map[string]string{EnvVaultGcpRole: "test"}, 1},
 		{map[string]string{EnvVaultGcpRole: "fail"}, 1},

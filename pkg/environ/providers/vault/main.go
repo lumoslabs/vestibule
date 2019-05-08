@@ -73,8 +73,7 @@ func New() (environ.Provider, error) {
 
 	v := &Client{Client: vc}
 	p := env.CustomParsers{
-		reflect.TypeOf(KVKeys{}): vaultKeysParser,
-		reflect.TypeOf(KVKey{}):  vaultKeyParser,
+		reflect.TypeOf(KVKey{}): vaultKeyParser,
 	}
 
 	if er := env.ParseWithFuncs(v, p); er != nil {

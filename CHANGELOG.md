@@ -107,3 +107,7 @@ _Ordered oldest -> newest_
 
 * Reenable VAULT_IAM_ROLE, but mark it deprecated
 * Add debugging around VAULT_AUTH_DATA
+
+## v1.2.5
+
+* Fix issue with vault kv keys not being split
