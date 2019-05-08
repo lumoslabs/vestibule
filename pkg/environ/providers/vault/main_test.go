@@ -193,7 +193,7 @@ func TestKeyParser(t *testing.T) {
 	}
 
 	for _, test := range tt {
-		keys, er := vaultKeysParser(test.keys)
+		keys, er := parseVaultKVKeys(test.keys)
 		require.NoError(t, er)
 
 		switch keys := keys.(type) {
