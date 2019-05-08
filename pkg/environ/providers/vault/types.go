@@ -81,22 +81,22 @@ the path from AWS_SHARED_CREDENTIALS_FILE (by default "/var/run/aws/credentials"
 // Client is an environ.Provider and github.com/hashicorp/vault/api.Client which will get the requested keys
 type Client struct {
 	*api.Client
-	AuthMethod  string         `env:"VAULT_AUTH_METHOD"`
-	AuthPath    string         `env:"VAULT_AUTH_PATH"`
-	AuthData    *VaultAuthData `env:"VAULT_AUTH_DATA"`
-	AppRole     string         `env:"VAULT_APP_ROLE"`
-	AppSecret   string         `env:"VAULT_APP_SECRET"`
-	AppJWT      string         `env:"VAULT_APP_JWT"`
-	AwsRole     string         `env:"VAULT_AWS_ROLE"`
-	IamRole     string         `env:"VAULT_IAM_ROLE"`
-	AwsPath     string         `env:"VAULT_AWS_PATH" envDefault:"aws"`
-	AwsCredFile string         `env:"AWS_SHARED_CREDENTIALS_FILE" envDefault:"/var/run/aws/credentials"`
-	AwsProfile  string         `env:"AWS_PROFILE" envDefault:"default"`
-	GcpPath     string         `env:"VAULT_GCP_PATH" envDefault:"gcp"`
-	GcpRole     string         `env:"VAULT_GCP_ROLE"`
-	GcpCredType string         `env:"VAULT_GCP_CRED_TYPE" envDefault:"key"`
-	GcpCredFile string         `env:"GOOGLE_CREDENTIALS_FILE" envDefault:"/var/run/gcp/creds.json"`
-	Keys        []KVKey        `env:"VAULT_KV_KEYS" envSeparator:":"`
+	AuthMethod  string            `env:"VAULT_AUTH_METHOD"`
+	AuthPath    string            `env:"VAULT_AUTH_PATH"`
+	AuthData    *RedactedAuthData `env:"VAULT_AUTH_DATA"`
+	AppRole     string            `env:"VAULT_APP_ROLE"`
+	AppSecret   string            `env:"VAULT_APP_SECRET"`
+	AppJWT      string            `env:"VAULT_APP_JWT"`
+	AwsRole     string            `env:"VAULT_AWS_ROLE"`
+	IamRole     string            `env:"VAULT_IAM_ROLE"`
+	AwsPath     string            `env:"VAULT_AWS_PATH" envDefault:"aws"`
+	AwsCredFile string            `env:"AWS_SHARED_CREDENTIALS_FILE" envDefault:"/var/run/aws/credentials"`
+	AwsProfile  string            `env:"AWS_PROFILE" envDefault:"default"`
+	GcpPath     string            `env:"VAULT_GCP_PATH" envDefault:"gcp"`
+	GcpRole     string            `env:"VAULT_GCP_ROLE"`
+	GcpCredType string            `env:"VAULT_GCP_CRED_TYPE" envDefault:"key"`
+	GcpCredFile string            `env:"GOOGLE_CREDENTIALS_FILE" envDefault:"/var/run/gcp/creds.json"`
+	Keys        []KVKey           `env:"VAULT_KV_KEYS" envSeparator:":"`
 }
 
 // KVKeys is an alias for []*KVKey. Needed for caarlos0/env to support parsing.
@@ -108,6 +108,6 @@ type KVKey struct {
 	Version *int
 }
 
-type VaultAuthData struct {
+type RedactedAuthData struct {
 	data map[string]string
 }
