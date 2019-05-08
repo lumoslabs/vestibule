@@ -98,3 +98,7 @@ _Ordered oldest -> newest_
 ## v1.2.2
 
 * Fix homebrew tap
+
+### v1.2.3
+
+* Allow for approle with only role_id
