@@ -111,3 +111,11 @@ _Ordered oldest -> newest_
 ## v1.2.5
 
 * Fix issue with vault kv keys not being split
+
+## v1.2.6
+
+* Fix vault kv keys race condition
+
+## v1.2.7
+
+* Use RedactableAuthData for auth data so we always redact when loggin

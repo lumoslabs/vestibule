@@ -45,7 +45,7 @@ The handy Makefile here provides targets:
           vest 1000:1 id
 
       Environment Variables:
-      
+
         VEST_DEBUG
           Enable debug logging.
 
@@ -104,7 +104,7 @@ The handy Makefile here provides targets:
           Mountpoint for the vault AWS secret engine. Defaults to "aws".
 
         VAULT_AWS_ROLE
-          Name of the role to generate credentials against. If credentials are
+          Name of the aws role to generate credentials against. If credentials are
           returned, the access key and secret key will be injected into the process
           environment using the standard environment variables and a credentials
           file will be written to the path from AWS_SHARED_CREDENTIALS_FILE (by
@@ -112,13 +112,16 @@ The handy Makefile here provides targets:
 
         VAULT_GCP_CRED_TYPE
           GCP credential type to generate. Defaults to key. Accepted values are
-          [token key].
+          [token key]
 
         VAULT_GCP_PATH
           Mountpoint for the vault GCP secret engine. Defaults to "gcp".
 
         VAULT_GCP_ROLE
           Name of the GCP role in vault to generate credentials against.
+
+        VAULT_IAM_ROLE
+          [DEPRECATED] Name of the aws role to generate credentials against.
 
         VAULT_KV_KEYS
           If VAULT_KV_KEYS is set, will iterate over each key (colon separated),
