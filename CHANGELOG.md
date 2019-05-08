@@ -99,6 +99,11 @@ _Ordered oldest -> newest_
 
 * Fix homebrew tap
 
-### v1.2.3
+## v1.2.3
 
 * Allow for approle with only role_id
+
+## v1.2.4
+
+* Reenable VAULT_IAM_ROLE, but mark it deprecated
+* Add debugging around VAULT_AUTH_DATA

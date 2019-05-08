@@ -96,19 +96,22 @@ func (client *Client) SetVaultToken() error {
 	data := make(map[string]interface{})
 	switch {
 	case !util.IsBlank(client.AppRole) && !util.IsBlank(client.AppSecret):
-		log.Debug("using approle")
+		log.Debugf("using approle method=%s path=%s", client.AuthMethod, client.AuthPath)
 		data["role_id"] = client.AppRole
 		data["secret_id"] = client.AppSecret
 	case !util.IsBlank(client.AppRole) && !util.IsBlank(client.AppJWT):
-		log.Debug("using jwt")
+		log.Debugf("using jwt method=%s path=%s", client.AuthMethod, client.AuthPath)
 		data["role"] = client.AppRole
 		data["jwt"] = client.AppJWT
 	case !util.IsBlank(client.AuthData):
-		if er := json.Unmarshal([]byte(client.AuthData), &data); er != nil {
+		d := strings.TrimSpace(client.AuthData)
+		log.Debugf("unmarshaling auth data data='%s' method=%s path=%s", d, client.AuthMethod, client.AuthPath)
+		if er := json.Unmarshal([]byte(d), &data); er != nil {
 			return fmt.Errorf("failed to unmarshal VAULT_AUTH_DATA: %v", er)
 		}
 	default:
 		if inCluster() {
+			log.Debugf("using kubernetes method=%s path=%s", client.AuthMethod, client.AuthPath)
 			kt, er := afero.ReadFile(fs, kubernetesTokenFilePath)
 			if er != nil || len(kt) == 0 {
 				return fmt.Errorf("failed to get k8s service account token: %v", er)
@@ -116,6 +119,7 @@ func (client *Client) SetVaultToken() error {
 			data["role"] = client.AppRole
 			data["jwt"] = string(kt)
 		} else {
+			log.Debugf("using approle without secret_id method=%s path=%s", client.AuthMethod, client.AuthPath)
 			// Assume we are using approle with only a role_id
 			data["role_id"] = client.AppRole
 		}
@@ -198,13 +202,19 @@ func (client *Client) AddToEnviron(env *environ.Environ) error {
 		}(&key)
 	}
 
-	if !util.IsBlank(client.AwsRole) {
+	if !util.IsBlank(client.AwsRole) || !util.IsBlank(client.IamRole) {
+		p := strings.TrimSpace(strings.Trim(client.AwsPath, "/")) + "/sts/"
+		if util.IsBlank(client.AwsRole) {
+			p = p + strings.TrimSpace(client.IamRole)
+		} else {
+			p = p + strings.TrimSpace(client.AwsRole)
+		}
+
 		wg.Add(1)
-		go func() {
+		go func(path string) {
 			defer wg.Done()
 			// attempt to get aws creds from vault
 			// only looks for sts roles
-			path := strings.TrimSpace(strings.Trim(client.AwsPath, "/")) + "/sts/" + strings.TrimSpace(client.AwsRole)
 			creds, er := client.getAwsCreds(path)
 			if er != nil {
 				log.Debugf("Failed to get aws creds from vault. path=%s err=%v", path, er)
@@ -222,19 +232,18 @@ func (client *Client) AddToEnviron(env *environ.Environ) error {
 
 			creds[EnvAwsSharedCredFile] = client.AwsCredFile
 			env.SafeMerge(creds)
-		}()
+		}(p)
 	}
 
 	if !util.IsBlank(client.GcpRole) {
 		wg.Add(1)
-		go func() {
+		go func(path string) {
 			defer wg.Done()
 
 			if client.GcpCredType != "key" && client.GcpCredType != "token" {
 				return
 			}
 
-			path := strings.TrimSpace(strings.Trim(client.GcpPath, "/")) + "/" + client.GcpCredType + "/" + strings.TrimSpace(client.GcpRole)
 			creds, er := client.getGCPCreds(path)
 			if er != nil {
 				log.Infof("Failed to get gcp credentials from vault. path=%s err=%+v", path, er)
@@ -251,7 +260,7 @@ func (client *Client) AddToEnviron(env *environ.Environ) error {
 				}
 				env.SafeMerge(map[string]string{EnvGoogleCredFile: client.GcpCredFile})
 			}
-		}()
+		}(strings.TrimSpace(strings.Trim(client.GcpPath, "/")) + "/" + client.GcpCredType + "/" + strings.TrimSpace(client.GcpRole))
 	}
 
 	wg.Wait()

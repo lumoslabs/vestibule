@@ -24,6 +24,7 @@ const (
 	EnvVaultAuthPath         = "VAULT_AUTH_PATH"
 	EnvVaultAwsPath          = "VAULT_AWS_PATH"
 	EnvVaultAwsRole          = "VAULT_AWS_ROLE"
+	EnvVaultIamRole          = "VAULT_IAM_ROLE"
 	EnvVaultGcpCredType      = "VAULT_GCP_CRED_TYPE"
 	EnvVaultGcpPath          = "VAULT_GCP_PATH"
 	EnvVaultGcpRole          = "VAULT_GCP_ROLE"
@@ -56,10 +57,11 @@ var (
 Secrets are pulled at the optional version or latest, then injected into Environ. If running in Kubernetes,
 the Pod's ServiceAccount token will automatically be looked up and used for Vault authentication.
 e.g. VAULT_KV_KEYS=/path/to/key1[@version]:/path/to/key2[@version]:...`,
-		EnvVaultAwsRole: `Name of the role to generate credentials against. If credentials are returned, the access key and secret key will be injected into
+		EnvVaultAwsRole: `Name of the aws role to generate credentials against. If credentials are returned, the access key and secret key will be injected into
 the process environment using the standard environment variables and a credentials file will be written to
 the path from AWS_SHARED_CREDENTIALS_FILE (by default "/var/run/aws/credentials")`,
 		"VAULT_*":            "All vault client configuration environment variables are respected. More information at https://www.vaultproject.io/docs/commands/#environment-variables",
+		EnvVaultIamRole:      "[DEPRECATED] Name of the aws role to generate credentials against.",
 		EnvAwsProfile:        `AWS profile to use in the shared credentials file. Defaults to "default"`,
 		EnvAwsSharedCredFile: `Path to the AWS shared credentials file to write credentials to. Defaults to "/var/run/aws/credentials"`,
 		EnvGoogleCredFile:    `Path to the GCP service account credentials file to create. Defaults to "/var/run/gcp/creds.json"`,
@@ -86,6 +88,7 @@ type Client struct {
 	AppSecret   string `env:"VAULT_APP_SECRET"`
 	AppJWT      string `env:"VAULT_APP_JWT"`
 	AwsRole     string `env:"VAULT_AWS_ROLE"`
+	IamRole     string `env:"VAULT_IAM_ROLE"`
 	AwsPath     string `env:"VAULT_AWS_PATH" envDefault:"aws"`
 	AwsCredFile string `env:"AWS_SHARED_CREDENTIALS_FILE" envDefault:"/var/run/aws/credentials"`
 	AwsProfile  string `env:"AWS_PROFILE" envDefault:"default"`
