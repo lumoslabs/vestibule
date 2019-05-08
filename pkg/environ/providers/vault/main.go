@@ -73,12 +73,14 @@ func New() (environ.Provider, error) {
 
 	v := &Client{Client: vc}
 	p := env.CustomParsers{
-		reflect.TypeOf(KVKey{}): vaultKeyParser,
+		reflect.TypeOf(KVKey{}):               parseVaultKVKey,
+		reflect.TypeOf(&RedactableAuthData{}): parseRedactableAuthData,
 	}
 
 	if er := env.ParseWithFuncs(v, p); er != nil {
 		return nil, er
 	}
+	log.Debugf("Generated new vault client. client=%+v", v)
 
 	if v.Token() == "" {
 		if er := v.SetVaultToken(); er != nil {
@@ -102,12 +104,8 @@ func (client *Client) SetVaultToken() error {
 		log.Debugf("using jwt method=%s path=%s", client.AuthMethod, client.AuthPath)
 		data["role"] = client.AppRole
 		data["jwt"] = client.AppJWT
-	case !util.IsBlank(client.AuthData):
-		d := strings.TrimSpace(client.AuthData)
-		log.Debugf("unmarshaling auth data data='%s' method=%s path=%s", d, client.AuthMethod, client.AuthPath)
-		if er := json.Unmarshal([]byte(d), &data); er != nil {
-			return fmt.Errorf("failed to unmarshal VAULT_AUTH_DATA: %v", er)
-		}
+	case client.AuthData != nil:
+		data = client.AuthData.toGenericMap()
 	default:
 		if inCluster() {
 			log.Debugf("using kubernetes method=%s path=%s", client.AuthMethod, client.AuthPath)
@@ -436,19 +434,36 @@ func (client *Client) writeGCPKeyFile(encoded string) error {
 	return f.Close()
 }
 
-func vaultKeysParser(s string) (interface{}, error) {
+func (vd *RedactableAuthData) toGenericMap() map[string]interface{} {
+	gm := make(map[string]interface{}, len(vd.data))
+	for k, v := range vd.data {
+		gm[k] = v
+	}
+	return gm
+}
+
+func (vd *RedactableAuthData) String() string {
+	redacted := redact(vd.toGenericMap())
+	out, er := json.Marshal(redacted)
+	if er != nil {
+		return fmt.Sprintf("%v", redacted)
+	}
+	return string(out)
+}
+
+func parseVaultKVKeys(s string) (interface{}, error) {
 	log.Debugf("parsing kv keys kvkey=%v", s)
 	keys := KVKeys{}
 
 	for _, k := range strings.Split(s, VaultKeysSeparator) {
-		key, _ := vaultKeyParser(k)
+		key, _ := parseVaultKVKey(k)
 		keys = append(keys, key.(KVKey))
 	}
 
 	return keys, nil
 }
 
-func vaultKeyParser(s string) (interface{}, error) {
+func parseVaultKVKey(s string) (interface{}, error) {
 	keyParts := strings.SplitN(s, VaultKeySeparator, 2)
 	key := KVKey{Path: strings.TrimLeft(keyParts[0], "/"), Version: nil}
 
@@ -463,6 +478,14 @@ func vaultKeyParser(s string) (interface{}, error) {
 
 	key.Version = &v
 	return key, nil
+}
+
+func parseRedactableAuthData(s string) (interface{}, error) {
+	data := make(map[string]string)
+	if er := json.Unmarshal([]byte(s), &data); er != nil {
+		return nil, fmt.Errorf("failed to parse VAULT_AUTH_DATA: %v", er)
+	}
+	return &RedactableAuthData{data: data}, nil
 }
 
 func redact(sensitive map[string]interface{}) map[string]string {
