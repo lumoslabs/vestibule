@@ -73,8 +73,8 @@ func New() (environ.Provider, error) {
 
 	v := &Client{Client: vc}
 	p := env.CustomParsers{
-		reflect.TypeOf(KVKey{}):             parseVaultKVKey,
-		reflect.TypeOf(&RedactedAuthData{}): parseRedactedAuthData,
+		reflect.TypeOf(KVKey{}):               parseVaultKVKey,
+		reflect.TypeOf(&RedactableAuthData{}): parseRedactableAuthData,
 	}
 
 	if er := env.ParseWithFuncs(v, p); er != nil {
@@ -434,7 +434,7 @@ func (client *Client) writeGCPKeyFile(encoded string) error {
 	return f.Close()
 }
 
-func (vd *RedactedAuthData) toGenericMap() map[string]interface{} {
+func (vd *RedactableAuthData) toGenericMap() map[string]interface{} {
 	gm := make(map[string]interface{}, len(vd.data))
 	for k, v := range vd.data {
 		gm[k] = v
@@ -442,7 +442,7 @@ func (vd *RedactedAuthData) toGenericMap() map[string]interface{} {
 	return gm
 }
 
-func (vd *RedactedAuthData) String() string {
+func (vd *RedactableAuthData) String() string {
 	redacted := redact(vd.toGenericMap())
 	out, er := json.Marshal(redacted)
 	if er != nil {
@@ -480,12 +480,12 @@ func parseVaultKVKey(s string) (interface{}, error) {
 	return key, nil
 }
 
-func parseRedactedAuthData(s string) (interface{}, error) {
+func parseRedactableAuthData(s string) (interface{}, error) {
 	data := make(map[string]string)
 	if er := json.Unmarshal([]byte(s), &data); er != nil {
 		return nil, fmt.Errorf("failed to parse VAULT_AUTH_DATA: %v", er)
 	}
-	return &RedactedAuthData{data: data}, nil
+	return &RedactableAuthData{data: data}, nil
 }
 
 func redact(sensitive map[string]interface{}) map[string]string {
