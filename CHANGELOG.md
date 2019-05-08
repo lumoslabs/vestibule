@@ -94,3 +94,7 @@ _Ordered oldest -> newest_
 * VAULT_IAM_* -> VAULT_AWS_*
 * Add support for generating GCP service account key
 * Add homebrew release
+
+## v1.2.2
+
+* Fix homebrew tap
