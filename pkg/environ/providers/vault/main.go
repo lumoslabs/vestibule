@@ -79,6 +79,7 @@ func New() (environ.Provider, error) {
 	if er := env.ParseWithFuncs(v, p); er != nil {
 		return nil, er
 	}
+	log.Debugf("Generated new vault client. client=%+v", v)
 
 	if v.Token() == "" {
 		if er := v.SetVaultToken(); er != nil {
@@ -191,14 +192,14 @@ func (client *Client) AddToEnviron(env *environ.Environ) error {
 
 	for _, key := range client.Keys {
 		wg.Add(1)
-		go func(k *KVKey) {
+		go func(k KVKey) {
 			defer wg.Done()
 			if data, er := client.getKVData(k); er == nil {
 				env.SafeMerge(data)
 			} else {
 				log.Debugf("Failed to get data for key. key=%s err=%v", k.Path, er)
 			}
-		}(&key)
+		}(key)
 	}
 
 	if !util.IsBlank(client.AwsRole) || !util.IsBlank(client.IamRole) {
@@ -266,7 +267,7 @@ func (client *Client) AddToEnviron(env *environ.Environ) error {
 	return nil
 }
 
-func (client *Client) getKVData(key *KVKey) (map[string]string, error) {
+func (client *Client) getKVData(key KVKey) (map[string]string, error) {
 	keyParts := strings.Split(key.Path, "/")
 	if len(keyParts) < 2 {
 		return nil, ErrInvalidKVKey
