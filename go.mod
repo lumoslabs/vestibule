@@ -21,7 +21,7 @@ require (
 	github.com/aws/aws-sdk-go v1.16.22 // indirect
 	github.com/bitly/go-hostpool v0.0.0-20171023180738-a3a6125de932 // indirect
 	github.com/bmizerany/assert v0.0.0-20160611221934-b7ed37b82869 // indirect
-	github.com/caarlos0/env v3.5.0+incompatible
+	github.com/caarlos0/env/v5 v5.1.4
 	github.com/cenkalti/backoff v2.1.1+incompatible // indirect
 	github.com/census-instrumentation/opencensus-proto v0.1.0 // indirect
 	github.com/containerd/continuity v0.0.0-20181203112020-004b46473808 // indirect

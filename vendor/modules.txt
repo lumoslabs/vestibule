@@ -64,8 +64,9 @@ github.com/aws/aws-sdk-go/private/protocol/json/jsonutil
 github.com/aws/aws-sdk-go/private/protocol/query/queryutil
 github.com/aws/aws-sdk-go/private/protocol/xml/xmlutil
 github.com/aws/aws-sdk-go/internal/sdkuri
-# github.com/caarlos0/env v3.5.0+incompatible
-github.com/caarlos0/env
+# github.com/caarlos0/env/v5 v5.1.4
+github.com/caarlos0/env/v5
+github.com/caarlos0/env/v5/parsers
 # github.com/census-instrumentation/opencensus-proto v0.1.0
 github.com/census-instrumentation/opencensus-proto/gen-go/agent/common/v1
 github.com/census-instrumentation/opencensus-proto/gen-go/agent/trace/v1

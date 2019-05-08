@@ -12,7 +12,7 @@ import (
 
 	"go.mozilla.org/sops"
 
-	"github.com/caarlos0/env"
+	env "github.com/caarlos0/env/v5"
 	"github.com/joho/godotenv"
 	"go.mozilla.org/sops/decrypt"
 	yaml "gopkg.in/yaml.v2"

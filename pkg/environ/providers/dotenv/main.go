@@ -6,7 +6,7 @@ import (
 
 	"github.com/joho/godotenv"
 
-	"github.com/caarlos0/env"
+	env "github.com/caarlos0/env/v5"
 	"github.com/lumoslabs/vestibule/pkg/environ"
 )
 

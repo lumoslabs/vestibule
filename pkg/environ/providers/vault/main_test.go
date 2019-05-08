@@ -189,7 +189,7 @@ func TestKeyParser(t *testing.T) {
 	}
 
 	for _, test := range tt {
-		keys, er := vaultKeyParser(test.keys)
+		keys, er := vaultKeysParser(test.keys)
 		require.NoError(t, er)
 
 		switch keys := keys.(type) {
@@ -251,7 +251,7 @@ func TestAddToEnviron(t *testing.T) {
 		}
 
 		c, er := New()
-		require.NoError(t, er)
+		require.NoErrorf(t, er, `%d: vars=%v`, i, test.envv)
 
 		e := environ.New()
 		c.AddToEnviron(e)

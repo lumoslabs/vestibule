@@ -97,7 +97,7 @@ type Client struct {
 }
 
 // KVKeys is an alias for []*KVKey. Needed for caarlos0/env to support parsing.
-type KVKeys []*KVKey
+type KVKeys []KVKey
 
 // KVKey is a kv ver2 key in Vault
 type KVKey struct {

@@ -13,7 +13,7 @@ import (
 	"github.com/lumoslabs/vestibule/pkg/environ/providers/vault"
 	"github.com/opencontainers/runc/libcontainer/user"
 
-	"github.com/caarlos0/env"
+	env "github.com/caarlos0/env/v5"
 
 	"github.com/lumoslabs/vestibule/pkg/environ"
 	logger "github.com/lumoslabs/vestibule/pkg/log"

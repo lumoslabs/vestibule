@@ -18,7 +18,7 @@ import (
 	"github.com/spf13/afero"
 
 	util "github.com/Masterminds/goutils"
-	"github.com/caarlos0/env"
+	env "github.com/caarlos0/env/v5"
 	"github.com/hashicorp/vault/api"
 	"github.com/lumoslabs/vestibule/pkg/environ"
 	"github.com/lumoslabs/vestibule/pkg/log"
@@ -72,7 +72,10 @@ func New() (environ.Provider, error) {
 	}
 
 	v := &Client{Client: vc}
-	p := env.CustomParsers{reflect.TypeOf(KVKeys{}): vaultKeyParser}
+	p := env.CustomParsers{
+		reflect.TypeOf(KVKeys{}): vaultKeysParser,
+		reflect.TypeOf(KVKey{}):  vaultKeyParser,
+	}
 
 	if er := env.ParseWithFuncs(v, p); er != nil {
 		return nil, er
@@ -187,7 +190,7 @@ func (client *Client) AddToEnviron(env *environ.Environ) error {
 			} else {
 				log.Debugf("Failed to get data for key. key=%s err=%v", k.Path, er)
 			}
-		}(key)
+		}(&key)
 	}
 
 	if !util.IsBlank(client.AwsRole) {
@@ -420,29 +423,33 @@ func (client *Client) writeGCPKeyFile(encoded string) error {
 	return f.Close()
 }
 
-func vaultKeyParser(s string) (interface{}, error) {
-
+func vaultKeysParser(s string) (interface{}, error) {
+	log.Debugf("parsing kv keys kvkey=%v", s)
 	keys := KVKeys{}
 
 	for _, k := range strings.Split(s, VaultKeysSeparator) {
-		keyParts := strings.SplitN(k, VaultKeySeparator, 2)
-		key := KVKey{Path: strings.TrimLeft(keyParts[0], "/"), Version: nil}
-
-		keys = append(keys, &key)
-
-		if len(keyParts) == 1 {
-			continue
-		}
-
-		v, er := strconv.Atoi(keyParts[1])
-		if er != nil {
-			return nil, er
-		}
-
-		key.Version = &v
+		key, _ := vaultKeyParser(k)
+		keys = append(keys, key.(KVKey))
 	}
 
 	return keys, nil
+}
+
+func vaultKeyParser(s string) (interface{}, error) {
+	keyParts := strings.SplitN(s, VaultKeySeparator, 2)
+	key := KVKey{Path: strings.TrimLeft(keyParts[0], "/"), Version: nil}
+
+	if len(keyParts) == 1 {
+		return key, nil
+	}
+
+	v, er := strconv.Atoi(keyParts[1])
+	if er != nil {
+		return nil, er
+	}
+
+	key.Version = &v
+	return key, nil
 }
 
 func getKubeJWT() ([]byte, error) {
