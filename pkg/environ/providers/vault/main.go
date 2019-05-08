@@ -108,12 +108,17 @@ func (client *Client) SetVaultToken() error {
 			return fmt.Errorf("failed to unmarshal VAULT_AUTH_DATA: %v", er)
 		}
 	default:
-		kt, er := getKubeJWT()
-		if er != nil || len(kt) == 0 {
-			return fmt.Errorf("failed to get k8s service account token: %v", er)
+		if inCluster() {
+			kt, er := afero.ReadFile(fs, kubernetesTokenFilePath)
+			if er != nil || len(kt) == 0 {
+				return fmt.Errorf("failed to get k8s service account token: %v", er)
+			}
+			data["role"] = client.AppRole
+			data["jwt"] = string(kt)
+		} else {
+			// Assume we are using approle with only a role_id
+			data["role_id"] = client.AppRole
 		}
-		data["role"] = client.AppRole
-		data["jwt"] = string(kt)
 	}
 
 	client.SetToken("token")
@@ -452,26 +457,20 @@ func vaultKeyParser(s string) (interface{}, error) {
 	return key, nil
 }
 
-func getKubeJWT() ([]byte, error) {
-	if util.IsBlank(os.Getenv(EnvKubernetesServiceHost)) && util.IsBlank(os.Getenv(EnvKubernetesServicePort)) {
-		return []byte(nil), ErrNotInKubernetes
-	}
-	if _, er := fs.Stat(kubernetesTokenFilePath); er != nil {
-		return []byte(nil), ErrNotInKubernetes
-	}
-
-	return afero.ReadFile(fs, kubernetesTokenFilePath)
-}
-
 func redact(sensitive map[string]interface{}) map[string]string {
 	clean := make(map[string]string, len(sensitive))
 	for k, v := range sensitive {
 		switch k {
 		default:
 			clean[k] = v.(string)
-		case "jwt", "secret_id", "password", "identity", "signature", "pkcs7", "token":
+		case "jwt", "secret_id", "role_id", "password", "identity", "signature", "pkcs7", "token":
 			clean[k] = "[REDACTED]"
 		}
 	}
 	return clean
+}
+
+func inCluster() bool {
+	_, er := fs.Stat(kubernetesTokenFilePath)
+	return util.IsBlank(os.Getenv(EnvKubernetesServiceHost)) && util.IsBlank(os.Getenv(EnvKubernetesServicePort)) && er != nil
 }
