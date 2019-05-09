@@ -123,3 +123,7 @@ _Ordered oldest -> newest_
 ## v1.2.8
 
 * Fix kubernetes in cluster method
+
+## v1.2.9
+
+* Actually fix kubernetes in cluster method
