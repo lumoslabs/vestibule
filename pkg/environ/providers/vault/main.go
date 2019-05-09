@@ -503,5 +503,5 @@ func redact(sensitive map[string]interface{}) map[string]string {
 
 func inCluster() bool {
 	_, er := fs.Stat(kubernetesTokenFilePath)
-	return util.IsBlank(os.Getenv(EnvKubernetesServiceHost)) && util.IsBlank(os.Getenv(EnvKubernetesServicePort)) && er != nil
+	return !util.IsBlank(os.Getenv(EnvKubernetesServiceHost)) && !util.IsBlank(os.Getenv(EnvKubernetesServicePort)) && er != nil
 }

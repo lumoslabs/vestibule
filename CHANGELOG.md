@@ -119,3 +119,7 @@ _Ordered oldest -> newest_
 ## v1.2.7
 
 * Use RedactableAuthData for auth data so we always redact when loggin
+
+## v1.2.8
+
+* Fix kubernetes in cluster method
