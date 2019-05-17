@@ -5,6 +5,7 @@ stages:
 .base:
   image: registry.gitlab.com/lumoslabs/docker-library/golang:1.12-ci-9d7f4c8f
   variables:
+    GIT_DEPTH: "3"
     GOFLAGS: -mod=vendor
 
 test:
