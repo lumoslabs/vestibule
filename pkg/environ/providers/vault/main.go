@@ -8,6 +8,7 @@ import (
 	"os"
 	"path/filepath"
 	"reflect"
+	"regexp"
 	"strconv"
 	"strings"
 	"sync"
@@ -25,6 +26,8 @@ import (
 )
 
 var fs = afero.NewOsFs()
+var slashRE = regexp.MustCompile(`\/+`)
+var blankRE = regexp.MustCompile(`\s+`)
 
 const (
 	// Name is the Provider name
@@ -465,7 +468,10 @@ func parseVaultKVKeys(s string) (interface{}, error) {
 
 func parseVaultKVKey(s string) (interface{}, error) {
 	keyParts := strings.SplitN(s, VaultKeySeparator, 2)
-	key := KVKey{Path: strings.TrimLeft(keyParts[0], "/"), Version: nil}
+	path := strings.TrimLeft(strings.TrimSpace(keyParts[0]), "/")
+	path = slashRE.ReplaceAllString(path, "/")
+	path = blankRE.ReplaceAllString(path, "")
+	key := KVKey{Path: path, Version: nil}
 
 	if len(keyParts) == 1 {
 		return key, nil

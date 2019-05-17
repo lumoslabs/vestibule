@@ -127,3 +127,7 @@ _Ordered oldest -> newest_
 ## v1.2.9
 
 * Actually fix kubernetes in cluster method
+
+## v1.2.10
+
+* Format key path on parse to remove extra slashes and all whitespace

@@ -8,6 +8,7 @@ import (
 	"net/http/httptest"
 	"os"
 	"path/filepath"
+	"regexp"
 	"strconv"
 	"strings"
 	"testing"
@@ -190,21 +191,21 @@ func TestKeyParser(t *testing.T) {
 		{"kv/foo/bar", 1, false},
 		{"/kv/foo/bar:kv/bif/baz", 2, false},
 		{"/kv//foo/bar@1:kv/bif/baz@2", 2, true},
+		{"  /kv/foo/bar  ", 1, false},
+		{"/kv  /f oo/bar", 1, false},
+		{`/kv/foo/bar
+      `, 1, false},
 	}
 
 	for _, test := range tt {
 		keys, er := parseVaultKVKeys(test.keys)
 		require.NoError(t, er)
-
-		switch keys := keys.(type) {
-		default:
-			t.Errorf("Wrong type for parsed key: %T", keys)
-		case KVKeys:
-			assert.Equal(t, test.len, len(keys))
+		assert.IsType(t, KVKeys{}, keys)
+		for i, k := range keys.(KVKeys) {
+			assert.IsType(t, KVKey{}, k)
+			assert.Regexp(t, regexp.MustCompile(`^kv\/\w{3}\/\w{3}$`), k.Path)
 			if test.ver {
-				for i, k := range keys {
-					assert.Equal(t, i+1, *(k.Version))
-				}
+				assert.Equal(t, i+1, *(k.Version))
 			}
 		}
 	}
