@@ -1,0 +1,25 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: ~
+  namespace: ~
+spec:
+  volumes:
+    - name: vestibule-bin
+      emptyDir:
+        medium: Memory
+  initContainers:
+    - name: vestibule
+      image: quay.io/lumoslabs/vestibule:v1.2.10
+      imagePullPolicy: IfNotPresent
+      command: ["/usr/bin/dumb-init", "--"]
+      args: ["cp", "/bin/vest", "/bin/bule", "/var/bin"]
+      volumeMounts:
+        - name: vestibule-bin
+          mountPath: /var/bin
+  containers:
+    - name: ~
+      command: ["/var/vestibule/vest"]
+      volumeMounts:
+        - name: vestibule-bin
+          mountPath: /var/vestibule
