@@ -23,14 +23,18 @@ import (
 // 1 or more non-word characters
 const regex = "[^0-9A-Za-z_]+"
 
-var marshalFuncs = map[string]marshaller{
-	"json":   json.Marshal,
-	"yaml":   yaml.Marshal,
-	"yml":    yaml.Marshal,
-	"toml":   marshalToml,
-	"env":    marshalDotEnv,
-	"dotenv": marshalDotEnv,
-}
+var (
+	defaultOptions = &Options{Overwrite: false}
+
+	marshalFuncs = map[string]marshaller{
+		"json":   json.Marshal,
+		"yaml":   yaml.Marshal,
+		"yml":    yaml.Marshal,
+		"toml":   marshalToml,
+		"env":    marshalDotEnv,
+		"dotenv": marshalDotEnv,
+	}
+)
 
 // New returns a new blank Environ instance
 func New() *Environ {
@@ -92,13 +96,18 @@ func (e *Environ) Populate(providers []string) {
 	wg.Wait()
 }
 
-// Merge takes a map[string]string and adds it to this Environ, overwriting any conflicting keys.
-func (e *Environ) Merge(m map[string]string) {
+// Merge takes a map[string]string and adds it to this Environ.
+func (e *Environ) Merge(m map[string]string, opts *Options) {
 	e.Lock()
 	defer e.Unlock()
+	if opts == nil {
+		*opts = *defaultOptions
+	}
 
 	for k, v := range m {
-		e.m[k] = v
+		if _, ok := e.m[k]; opts.Overwrite || !ok {
+			e.m[k] = v
+		}
 	}
 }
 
@@ -110,6 +119,24 @@ func (e *Environ) SafeMerge(m map[string]string) {
 	for k, v := range m {
 		if _, ok := e.m[k]; !ok {
 			e.m[k] = v
+		}
+	}
+}
+
+// Append takes a slice in the form of os.Environ() - '=' delimited - and appends it to Environ.
+func (e *Environ) Append(s []string, opts *Options) {
+	e.Lock()
+	defer e.Unlock()
+	if opts == nil {
+		*opts = *defaultOptions
+	}
+
+	for _, item := range s {
+		bits := strings.SplitN(item, "=", 2)
+		if len(bits) == 2 {
+			if _, ok := e.m[bits[0]]; opts.Overwrite || !ok {
+				e.m[bits[0]] = bits[1]
+			}
 		}
 	}
 }

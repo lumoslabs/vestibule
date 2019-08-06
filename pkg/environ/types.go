@@ -11,7 +11,15 @@ type Environ struct {
 	m          map[string]string
 	re         *regexp.Regexp
 	marshaller marshaller
+
+	// UpcaseKeys will force all Environ keys to be upcased
 	UpcaseKeys bool
+}
+
+// Options contains flags for dealing with adding new keys to Environ
+type Options struct {
+	// Overwrite will allow new keys to overwrite existing keys if true
+	Overwrite bool
 }
 
 // Provider is a secrets provider able to inject variables into the environment
