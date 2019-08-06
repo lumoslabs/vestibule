@@ -32,5 +32,5 @@ func newUnregisteredProviderError(name string) *unregisteredProviderError {
 }
 
 func (e *unregisteredProviderError) Error() string {
-	return fmt.Sprintf("Unregistered provider %s", e.provider)
+	return fmt.Sprintf("unregistered provider %s", e.provider)
 }
