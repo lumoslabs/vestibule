@@ -108,6 +108,14 @@ type KVKey struct {
 	Version *int
 }
 
+type EnvKey struct {
+	name string
+	host string
+	path string
+	key  string
+	data map[string][]string
+}
+
 type RedactableAuthData struct {
 	data map[string]string
 }

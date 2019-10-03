@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"net/url"
 	"os"
 	"regexp"
 	"sort"
@@ -63,6 +64,12 @@ func NewFromEnv() *Environ {
 	}
 }
 
+func NewKey(u *url.Url) Key {
+  return Key{
+    
+  }
+}
+
 // Marshallers returns a list of all valid serializers extensions
 func Marshallers() []string {
 	marshallers := make([]string, 0, len(marshalFuncs))
@@ -71,6 +78,25 @@ func Marshallers() []string {
 	}
 	sort.Strings(marshallers)
 	return marshallers
+}
+
+func GatherKeys(pairs []string) map[string][]Key {
+	keys := make(map[string][]Key)
+	for _, item := range pairs {
+		bits := strings.SplitN(item, "=", 2)
+		if bits != 2 {
+			continue
+		}
+		decoded, er := url.Parse(bits[1])
+		if er != nil {
+			continue
+		}
+
+		if fn, ok := providers[decoded.Scheme]; ok {
+      k = NewKey(decoded)
+      keys = append(keys, Key{})
+		}
+	}
 }
 
 // Populate adds secrets to the Environ from the given providers

@@ -5,6 +5,7 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
+	"net/url"
 	"os"
 	"path/filepath"
 	"reflect"
@@ -91,6 +92,68 @@ func New() (environ.Provider, error) {
 		}
 	}
 	return v, nil
+}
+
+func NewKey(name string, location *url.URL) (environ.Key, error) {
+	return &EnvKey{
+    name: name,
+    host: location.Host,
+    path: filepath.Dir(location.Path),
+    key: filepath.Base(location.Path),
+    data: location.Query(),
+  }, nil
+}
+
+func PopulateEnvKeys(e *environ.Environ, keys []*EnvKey) error {
+  keyGroups := groupKeysByPath(keys)
+  for path, key := range keyGroups {
+
+  }
+}
+
+func groupKeysByPath(keys []*EnvKey) map[string][]*EnvKey {
+  groups := make(map[string][]*EnvKey)
+  for _, key := range keys {
+    if slice, ok := groups[key.path]; ok {
+      groups[key.path] = append(slice, key)
+    } else {
+      groups[key.path] = []*EnvKey{key}
+    }
+  }
+}
+
+func (k *EnvKey) PopulateData(e *environ.Environ) error {
+	vc, er := newVaultClient()
+	if er != nil {
+		return er
+	}
+
+	if k.host != "" {
+		vc.SetAddress(k.VaultAddr())
+	}
+
+	key := KVKey{Path: k.path, Version: nil}
+	if v, ok := k.data["version"]; ok {
+		key.setVersion(v)
+  }
+  
+  data, er := getKVData(vc, key)
+  if er != nil {
+    return er
+  }
+
+  value, ok := data[k.key]
+  if !ok {
+    return fmt.Errorf("key '%s' not found" k.key)
+  }
+
+
+
+	return nil
+}
+
+func (k *EnvKey) VaultAddr() string {
+	return "https://" + k.host
 }
 
 // SetVaultToken sets the AuthMethod and AuthPath if not already set and uses those to request a session token from vault
@@ -268,6 +331,10 @@ func (client *Client) AddToEnviron(env *environ.Environ) error {
 }
 
 func (client *Client) getKVData(key KVKey) (map[string]string, error) {
+	return getKVData(client.Client, key)
+}
+
+func getKVData(client *api.Client, key KVKey) (map[string]string, error) {
 	keyParts := strings.Split(key.Path, "/")
 	if len(keyParts) < 2 {
 		return nil, ErrInvalidKVKey
@@ -437,6 +504,19 @@ func (client *Client) writeGCPKeyFile(encoded string) error {
 	return f.Close()
 }
 
+func (k *KVKey) setVersion(version int) {
+	*(k.Version) = version
+}
+
+func (k *KVKey) setVersionFromString(version string) error {
+	num, er := strconv.Atoi(version)
+	if er != nil {
+		return er
+	}
+	k.setVersion(num)
+	return nil
+}
+
 func (vd *RedactableAuthData) toGenericMap() map[string]interface{} {
 	gm := make(map[string]interface{}, len(vd.data))
 	for k, v := range vd.data {
@@ -510,4 +590,16 @@ func redact(sensitive map[string]interface{}) map[string]string {
 func inCluster() bool {
 	_, er := fs.Stat(kubernetesTokenFilePath)
 	return !util.IsBlank(os.Getenv(EnvKubernetesServiceHost)) && !util.IsBlank(os.Getenv(EnvKubernetesServicePort)) && er == nil
+}
+
+func newVaultClient() (*api.Client, error) {
+	vaultConfig := api.DefaultConfig()
+	if util.IsBlank(os.Getenv(api.EnvVaultClientTimeout)) {
+		vaultConfig.Timeout = defaultClientTimeout
+	}
+	if util.IsBlank(os.Getenv(api.EnvVaultMaxRetries)) {
+		vaultConfig.MaxRetries = defaultClientRetries
+	}
+
+	return api.NewClient(vaultConfig)
 }
