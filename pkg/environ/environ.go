@@ -124,8 +124,8 @@ func (e *Environ) Populate(providers []string) {
 
 // Merge takes a map[string]string and adds it to this Environ.
 func (e *Environ) Merge(m map[string]string, opts *Options) {
-	e.Lock()
-	defer e.Unlock()
+	e.mu.Lock()
+	defer e.mu.Unlock()
 	if opts == nil {
 		*opts = *defaultOptions
 	}
@@ -139,8 +139,8 @@ func (e *Environ) Merge(m map[string]string, opts *Options) {
 
 // SafeMerge takes a map[string]string and adds it to this Environ without overwriting keys
 func (e *Environ) SafeMerge(m map[string]string) {
-	e.Lock()
-	defer e.Unlock()
+	e.mu.Lock()
+	defer e.mu.Unlock()
 
 	for k, v := range m {
 		if _, ok := e.m[k]; !ok {
@@ -151,8 +151,8 @@ func (e *Environ) SafeMerge(m map[string]string) {
 
 // Append takes a slice in the form of os.Environ() - '=' delimited - and appends it to Environ.
 func (e *Environ) Append(s []string, opts *Options) {
-	e.Lock()
-	defer e.Unlock()
+	e.mu.Lock()
+	defer e.mu.Unlock()
 	if opts == nil {
 		*opts = *defaultOptions
 	}
@@ -169,8 +169,8 @@ func (e *Environ) Append(s []string, opts *Options) {
 
 // SafeAppend takes a slice in the form of os.Environ() - '=' delimited - and appends it to Environ without overwriting keys.
 func (e *Environ) SafeAppend(s []string) {
-	e.Lock()
-	defer e.Unlock()
+	e.mu.Lock()
+	defer e.mu.Unlock()
 
 	for _, item := range s {
 		bits := strings.SplitN(item, "=", 2)
@@ -184,16 +184,16 @@ func (e *Environ) SafeAppend(s []string) {
 
 // Set takes a key / value pair and adds it to this Environ
 func (e *Environ) Set(k, v string) {
-	e.Lock()
-	defer e.Unlock()
+	e.mu.Lock()
+	defer e.mu.Unlock()
 
 	e.m[k] = v
 }
 
 // Load takes a key and returns the value if it exists or false
 func (e *Environ) Load(k string) (v string, ok bool) {
-	e.RLock()
-	defer e.RUnlock()
+	e.mu.RLock()
+	defer e.mu.RUnlock()
 
 	v, ok = e.m[k]
 	return
@@ -201,8 +201,8 @@ func (e *Environ) Load(k string) (v string, ok bool) {
 
 // Delete takes a key and removes it from this Environ, returning the value
 func (e *Environ) Delete(key string) (v string) {
-	e.Lock()
-	defer e.Unlock()
+	e.mu.Lock()
+	defer e.mu.Unlock()
 
 	v = e.m[key]
 	delete(e.m, key)
@@ -211,8 +211,8 @@ func (e *Environ) Delete(key string) (v string) {
 
 // Len returns the length of this Environ
 func (e *Environ) Len() (l int) {
-	e.RLock()
-	defer e.RUnlock()
+	e.mu.RLock()
+	defer e.mu.RUnlock()
 
 	l = len(e.m)
 	return
@@ -221,7 +221,9 @@ func (e *Environ) Len() (l int) {
 // Slice returns a sorted []string of key / value pairs from this Environ instance
 // suitable for use in palce of os.Environ()
 func (e *Environ) Slice() []string {
-	e.RLock()
+  e.mu.RLock()
+  defer e.mu.RUnlock()
+
 	var s = make([]string, 0, e.Len())
 	for k, v := range e.m {
 		key := e.re.ReplaceAllString(k, "_")
@@ -230,7 +232,6 @@ func (e *Environ) Slice() []string {
 		}
 		s = append(s, key+"="+v)
 	}
-	e.RUnlock()
 
 	sort.Strings(s)
 	return s
@@ -238,8 +239,8 @@ func (e *Environ) Slice() []string {
 
 // Map returns a copy of the underlying map[string]string
 func (e *Environ) Map() map[string]string {
-	e.RLock()
-	defer e.RUnlock()
+	e.mu.RLock()
+	defer e.mu.RUnlock()
 
 	dup := make(map[string]string, len(e.m))
 	for k, v := range e.m {
@@ -269,8 +270,8 @@ func (e *Environ) SetMarshaller(m string) {
 
 // Write writes the marshalled byte slice of the underlying map to the given io.Writer
 func (e *Environ) Write(w io.Writer) error {
-	e.RLock()
-	defer e.RUnlock()
+	e.mu.RLock()
+	defer e.mu.RUnlock()
 
 	out, er := e.marshaller(e.Map())
 	if er != nil {

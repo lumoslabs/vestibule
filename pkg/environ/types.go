@@ -1,14 +1,17 @@
 package environ
 
 import (
+	"errors"
 	"net/url"
 	"regexp"
 	"sync"
 )
 
+var ErrUnknownProvider = errors.New("unknown secrets provider")
+
 // Environ is a concurrency safe-ish map[string]string for holding environment variables
 type Environ struct {
-	sync.RWMutex
+	mu         sync.RWMutex
 	m          map[string]string
 	re         *regexp.Regexp
 	marshaller marshaller
@@ -34,9 +37,9 @@ type Key struct {
 
 // Provider is a secrets provider able to inject variables into the environment
 type Provider interface {
-  AddToEnviron(*Environ) error
-  AddKeysToEnviron(*Environ) error
-  AddKey(Key)
+	AddToEnviron(*Environ) error
+	AddKeysToEnviron(*Environ) error
+	AddKey(Key)
 }
 
 // ProviderFactory is a func that returns a new Provider
