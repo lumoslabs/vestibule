@@ -64,10 +64,8 @@ func NewFromEnv() *Environ {
 	}
 }
 
-func NewKey(u *url.Url) Key {
-  return Key{
-    
-  }
+func NewRawKey(n string, u *url.Url) RawKey {
+	return RawKey{n, u}
 }
 
 // Marshallers returns a list of all valid serializers extensions
@@ -80,11 +78,11 @@ func Marshallers() []string {
 	return marshallers
 }
 
-func GatherKeys(pairs []string) map[string][]Key {
+func GatherKeys(pairs []string) map[string][]RawKey {
 	keys := make(map[string][]Key)
 	for _, item := range pairs {
 		bits := strings.SplitN(item, "=", 2)
-		if bits != 2 {
+		if len(bits) != 2 {
 			continue
 		}
 		decoded, er := url.Parse(bits[1])
@@ -92,11 +90,16 @@ func GatherKeys(pairs []string) map[string][]Key {
 			continue
 		}
 
-		if fn, ok := providers[decoded.Scheme]; ok {
-      k = NewKey(decoded)
-      keys = append(keys, Key{})
+		if _, ok := providers[decoded.Scheme]; !ok {
+			continue
 		}
+
+		if keys[decoded.Scheme] == nil {
+			keys[decoded.Scheme] = make([]RawKey, 0, 0)
+		}
+		keys[decoded.Scheme] = append(keys[decoded.Scheme], NewRawKey(bits[0], decoded))
 	}
+	return keys
 }
 
 // Populate adds secrets to the Environ from the given providers
@@ -221,8 +224,8 @@ func (e *Environ) Len() (l int) {
 // Slice returns a sorted []string of key / value pairs from this Environ instance
 // suitable for use in palce of os.Environ()
 func (e *Environ) Slice() []string {
-  e.mu.RLock()
-  defer e.mu.RUnlock()
+	e.mu.RLock()
+	defer e.mu.RUnlock()
 
 	var s = make([]string, 0, e.Len())
 	for k, v := range e.m {

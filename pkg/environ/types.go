@@ -26,20 +26,19 @@ type Options struct {
 	Overwrite bool
 }
 
-// Key represents an environment variable key to be populated with secret data from a secrets provider
-type Key struct {
-	name string
-	host string
-	path string
-	key  string
-	data url.Values
+// RawKey represents an environment variable key to be populated with secret data from a secrets provider
+type RawKey struct {
+	Name string
+	URL  *url.URL
 }
+
+
 
 // Provider is a secrets provider able to inject variables into the environment
 type Provider interface {
 	AddToEnviron(*Environ) error
 	AddKeysToEnviron(*Environ) error
-	AddKey(Key)
+	AddKey(RawKey)
 }
 
 // ProviderFactory is a func that returns a new Provider
