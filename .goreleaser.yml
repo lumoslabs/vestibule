@@ -38,18 +38,17 @@ changelog:
 release:
   prerelease: auto
 
-# brew:
-#   skip_upload: auto
-#   github:
-#     owner: lumoslabs
-#     name: homebrew-vestibule
-
-#   folder: Formula
-#   description: "Gather secrets from various backends and inject them into the process environment"
-#   homepage: "https://github.com/lumoslabs/vestibule"
-#   test: |
-#     system "#{bin}/vest --version"
-#     system "#{bin}/bule --version"
+brews:
+  - skip_upload: auto
+    github:
+      owner: lumoslabs
+      name: homebrew-vestibule
+    folder: Formula
+    description: "Gather secrets from various backends and inject them into the process environment"
+    homepage: "https://github.com/lumoslabs/vestibule"
+    test: |
+      system "#{bin}/vest --version"
+      system "#{bin}/bule --version"
 
 dockers:
   - dockerfile: docker/alpine/Dockerfile
