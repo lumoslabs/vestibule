@@ -5,11 +5,13 @@ builds:
     binary: vest
     asmflags: ["all=-trimpath={{.Env.PWD}}"]
     gcflags: ["all=-trimpath={{.Env.PWD}}"]
+    id: vestibule-vest
   - env: ["CGO_ENABLED=0"]
     main: ./cmd/bule
     binary: bule
     asmflags: ["all=-trimpath={{.Env.PWD}}"]
     gcflags: ["all=-trimpath={{.Env.PWD}}"]
+    id: vestibule-bule
 
 archives:
   - files: ["none*"]
