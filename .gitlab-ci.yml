@@ -1,9 +1,10 @@
+---
 stages:
   - test
   - release
 
 .base:
-  image: registry.gitlab.com/lumoslabs/docker-library/golang:1.12-ci-9d7f4c8f
+  image: registry.gitlab.com/lumoslabs/docker-library/golang:1.13-stretch-ci
   variables:
     GIT_DEPTH: "3"
     GOFLAGS: -mod=vendor
@@ -26,8 +27,7 @@ test:memory:
 release:test:
   extends: .base
   stage: release
-  services:
-    - docker:dind
+  services: ["docker:18.09-dind"]
   variables:
     DOCKER_HOST: tcp://127.0.0.1:2375/
     DOCKER_DRIVER: overlay2
@@ -39,10 +39,8 @@ release:test:
 release:
   extends: .base
   stage: release
-  only:
-    - tags
-  services:
-    - docker:dind
+  only: [tags]
+  services: ["docker:18.09-dind"]
   variables:
     DOCKER_HOST: tcp://127.0.0.1:2375/
     DOCKER_DRIVER: overlay2
