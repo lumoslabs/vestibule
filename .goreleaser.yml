@@ -1,3 +1,4 @@
+---
 builds:
   - env: ["CGO_ENABLED=0"]
     main: ./cmd/vest
@@ -9,6 +10,7 @@ builds:
     binary: bule
     asmflags: ["all=-trimpath={{.Env.PWD}}"]
     gcflags: ["all=-trimpath={{.Env.PWD}}"]
+
 archives:
   - files: ["none*"]
     replacements:
@@ -17,31 +19,35 @@ archives:
       windows: Windows
       386: i386
       amd64: x86_64
+
 checksum:
   name_template: "{{ .ProjectName }}_checksums.txt"
+
 snapshot:
   name_template: "{{ .Tag }}-snapshot"
+
 changelog:
   sort: asc
   filters:
     exclude:
       - "^docs:"
       - "^test:"
+
 release:
   prerelease: auto
 
-brew:
-  skip_upload: auto
-  github:
-    owner: lumoslabs
-    name: homebrew-vestibule
-  
-  folder: Formula
-  description: "Gather secrets from various backends and inject them into the process environment"
-  homepage: "https://github.com/lumoslabs/vestibule"
-  test: |
-    system "#{bin}/vest --version"
-    system "#{bin}/bule --version"
+# brew:
+#   skip_upload: auto
+#   github:
+#     owner: lumoslabs
+#     name: homebrew-vestibule
+
+#   folder: Formula
+#   description: "Gather secrets from various backends and inject them into the process environment"
+#   homepage: "https://github.com/lumoslabs/vestibule"
+#   test: |
+#     system "#{bin}/vest --version"
+#     system "#{bin}/bule --version"
 
 dockers:
   - dockerfile: docker/alpine/Dockerfile
