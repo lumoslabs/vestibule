@@ -29,6 +29,7 @@ const (
 	EnvVaultGcpPath          = "VAULT_GCP_PATH"
 	EnvVaultGcpRole          = "VAULT_GCP_ROLE"
 	EnvVaultKeys             = "VAULT_KV_KEYS"
+	EnvVestExposeVaultToken  = "VEST_VAULT_EXPOSE_TOKEN"
 )
 
 var (
@@ -60,21 +61,22 @@ e.g. VAULT_KV_KEYS=/path/to/key1[@version]:/path/to/key2[@version]:...`,
 		EnvVaultAwsRole: `Name of the aws role to generate credentials against. If credentials are returned, the access key and secret key will be injected into
 the process environment using the standard environment variables and a credentials file will be written to
 the path from AWS_SHARED_CREDENTIALS_FILE (by default "/var/run/aws/credentials")`,
-		"VAULT_*":            "All vault client configuration environment variables are respected. More information at https://www.vaultproject.io/docs/commands/#environment-variables",
-		EnvVaultIamRole:      "[DEPRECATED] Name of the aws role to generate credentials against.",
-		EnvAwsProfile:        `AWS profile to use in the shared credentials file. Defaults to "default"`,
-		EnvAwsSharedCredFile: `Path to the AWS shared credentials file to write credentials to. Defaults to "/var/run/aws/credentials"`,
-		EnvGoogleCredFile:    `Path to the GCP service account credentials file to create. Defaults to "/var/run/gcp/creds.json"`,
-		EnvVaultAppJWT:       "The jwt for use with OIDC/JWT authentication",
-		EnvVaultAppRole:      "Either the role id for AppRole authentication, or the role name fo Kubernetes authentication.",
-		EnvVaultAppSecret:    "The secret id for use with AppRole authentication",
-		EnvVaultAuthData:     "Data payload to send with authentication request. JSON object.",
-		EnvVaultAuthMethod:   `Authentication method for vault. Default is "kubernetes".`,
-		EnvVaultAuthPath:     "Authentication path for vault authentication - e.g. okta/login/:user. Overrides VAULT_AUTH_METHOD if set.",
-		EnvVaultAwsPath:      `Mountpoint for the vault AWS secret engine. Defaults to "aws".`,
-		EnvVaultGcpCredType:  "GCP credential type to generate. Defaults to key. Accepted values are [token key]",
-		EnvVaultGcpPath:      `Mountpoint for the vault GCP secret engine. Defaults to "gcp".`,
-		EnvVaultGcpRole:      "Name of the GCP role in vault to generate credentials against.",
+		"VAULT_*":               "All vault client configuration environment variables are respected. More information at https://www.vaultproject.io/docs/commands/#environment-variables",
+		EnvVaultIamRole:         "[DEPRECATED] Name of the aws role to generate credentials against.",
+		EnvAwsProfile:           `AWS profile to use in the shared credentials file. Defaults to "default"`,
+		EnvAwsSharedCredFile:    `Path to the AWS shared credentials file to write credentials to. Defaults to "/var/run/aws/credentials"`,
+		EnvGoogleCredFile:       `Path to the GCP service account credentials file to create. Defaults to "/var/run/gcp/creds.json"`,
+		EnvVaultAppJWT:          "The jwt for use with OIDC/JWT authentication",
+		EnvVaultAppRole:         "Either the role id for AppRole authentication, or the role name fo Kubernetes authentication.",
+		EnvVaultAppSecret:       "The secret id for use with AppRole authentication",
+		EnvVaultAuthData:        "Data payload to send with authentication request. JSON object.",
+		EnvVaultAuthMethod:      `Authentication method for vault. Default is "kubernetes".`,
+		EnvVaultAuthPath:        "Authentication path for vault authentication - e.g. okta/login/:user. Overrides VAULT_AUTH_METHOD if set.",
+		EnvVaultAwsPath:         `Mountpoint for the vault AWS secret engine. Defaults to "aws".`,
+		EnvVaultGcpCredType:     "GCP credential type to generate. Defaults to key. Accepted values are [token key]",
+		EnvVaultGcpPath:         `Mountpoint for the vault GCP secret engine. Defaults to "gcp".`,
+		EnvVaultGcpRole:         "Name of the GCP role in vault to generate credentials against.",
+		EnvVestExposeVaultToken: "Should we expose the resulting vault token for the sub-process (potentially insecure! use with caution!)?",
 	}
 )
 
