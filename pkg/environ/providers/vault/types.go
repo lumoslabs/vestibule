@@ -76,7 +76,7 @@ the path from AWS_SHARED_CREDENTIALS_FILE (by default "/var/run/aws/credentials"
 		EnvVaultGcpCredType:     "GCP credential type to generate. Defaults to key. Accepted values are [token key]",
 		EnvVaultGcpPath:         `Mountpoint for the vault GCP secret engine. Defaults to "gcp".`,
 		EnvVaultGcpRole:         "Name of the GCP role in vault to generate credentials against.",
-		EnvVestExposeVaultToken: "Should we expose the resulting vault token for the sub-process (potentially insecure! use with caution!)?",
+		EnvVestExposeVaultToken: "Should we expose the resulting vault token, even if vest generated it, for the sub-process? (POTENTIALLY INSECURE -- USE WITH CAUTION!)",
 	}
 )
 
@@ -98,6 +98,7 @@ type Client struct {
 	GcpRole     string              `env:"VAULT_GCP_ROLE"`
 	GcpCredType string              `env:"VAULT_GCP_CRED_TYPE" envDefault:"key"`
 	GcpCredFile string              `env:"GOOGLE_CREDENTIALS_FILE" envDefault:"/var/run/gcp/creds.json"`
+	ExposeToken bool                `env:"VEST_VAULT_EXPOSE_TOKEN" envDefault:false`
 	Keys        []KVKey             `env:"VAULT_KV_KEYS" envSeparator:":"`
 }
 

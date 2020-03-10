@@ -263,6 +263,12 @@ func (client *Client) AddToEnviron(env *environ.Environ) error {
 		}(strings.TrimSpace(strings.Trim(client.GcpPath, "/")) + "/" + client.GcpCredType + "/" + strings.TrimSpace(client.GcpRole))
 	}
 
+	if client.ExposeToken {
+		vaultToken := make(map[string]string)
+		vaultToken["VAULT_TOKEN"] = client.Token()
+		env.SafeMerge(vaultToken)
+	}
+
 	wg.Wait()
 	return nil
 }
